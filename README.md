@@ -1,6 +1,10 @@
 # TuneBox 🎵
 
+![界面语言](https://img.shields.io/badge/界面语言-简体中文-red) ![平台](https://img.shields.io/badge/平台-Android%207.0%2B-green) ![架构](https://img.shields.io/badge/架构-armeabi--v7a%20%7C%20arm64--v8a-blue)
+
 完全自用的安卓本地音乐播放器。基于 libVLC 解码，全格式通吃——DSD (DSF/DFF)、APE、FLAC、杜比 TrueHD 等都能播。
+
+**界面语言：简体中文**
 
 ## 功能
 
