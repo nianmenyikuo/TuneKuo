@@ -1,0 +1,7 @@
+# TuneKuo for Windows 运行依赖
+# 播放引擎（纯 Python 封装，真正的解码由随包的 libvlc 负责）
+python-vlc>=3.0.20
+# 封面显示（没有它也能跑，只是只能显示 PNG 封面）
+Pillow>=10.0
+# 打包用
+pyinstaller>=6.10

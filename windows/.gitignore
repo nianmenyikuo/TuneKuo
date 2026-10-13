@@ -1,0 +1,24 @@
+# 打包产物
+dist/
+build/
+*.spec
+
+# 随包运行库（用 scripts\fetch_vlc.ps1 下载，不进版本库）
+vendor/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
+
+# 由 scripts\make_installer.py 生成（内含本机绝对路径）
+installer/TuneKuo.iss
+dist-installer/
+

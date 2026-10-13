@@ -1,8 +1,8 @@
 # TuneKuo 🎵
 
-![界面语言](https://img.shields.io/badge/界面语言-简体中文-red) ![平台](https://img.shields.io/badge/平台-Android%207.0%2B-green) ![架构](https://img.shields.io/badge/架构-armeabi--v7a%20%7C%20arm64--v8a-blue)
+![界面语言](https://img.shields.io/badge/界面语言-简体中文-red) ![平台](https://img.shields.io/badge/平台-Android%207.0%2B%20%7C%20Windows%2010%2F11-green) ![架构](https://img.shields.io/badge/架构-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x64-blue)
 
-完全自用的安卓本地音乐播放器。基于 libVLC 解码，全格式通吃——DSD (DSF/DFF)、APE、FLAC、杜比 TrueHD 等都能播。
+完全自用的本地音乐播放器，手机（Android）和电脑（Windows）两端都有。基于 libVLC 解码，全格式通吃——DSD (DSF/DFF)、APE、FLAC、杜比 TrueHD 等都能播。
 
 **界面语言：简体中文**
 
@@ -16,13 +16,31 @@
 - **音乐搜索**：顶部搜索框实时过滤歌名/歌手/专辑，点击结果在完整曲库队列中播放
 - **深色 UI**：卡片式列表、当前曲目高亮（♪）、矢量图标、64dp 渐变播放大按钮
 
-## 构建
+## Windows 版
+
+电脑端是独立的 Python + libVLC + tkinter 实现（源码在 [`windows/`](windows/) 目录），支持 Windows 10 / 11 64 位。
+
+- **下载安装**：见 [最新发布页](https://github.com/nianmenyikuo/TuneKuo/releases)，下载 `TuneKuo-Setup-*.exe` 双击安装（中文向导，安装包内自带解码引擎，无需另装 VLC）
+- **可设为默认播放器**：安装时勾选“注册为音频播放器”，装完在 系统设置 → 应用 → 默认应用 里把音频文件关联到 TuneKuo（Windows 不允许程序静默抢占，只能这样手动点一下）
+- 功能与手机端对齐：25 种格式、四种播放模式、歌词逐行高亮与内嵌封面、音乐搜索、深色界面、键盘媒体键、单实例
+
+自行构建（需要 64 位 Python 3.10+）：
+
+```powershell
+cd windows
+pip install -r requirements.txt
+powershell -ExecutionPolicy Bypass -File build.ps1
+```
+
+`build.ps1` 会自动下载 64 位 VLC 解码库，打包出免安装目录 `dist\TuneKuo\`。想做成安装程序再跑 `python scripts\make_installer.py`（需先安装 Inno Setup 6）。
+
+## 构建（Android）
 
 - Android Studio：打开项目直接 Run
 - 命令行：`./gradlew assembleDebug`（首次先 `gradle wrapper` 生成 wrapper）
 - APK 输出：`app/build/outputs/apk/debug/app-debug.apk`
 
-## 环境
+## 环境（Android）
 
 - Kotlin / minSdk 24 / targetSdk 34
 - 依赖：libVLC (org.videolan.android:libvlc)、AndroidX、MediaSessionCompat
