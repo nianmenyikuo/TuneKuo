@@ -61,7 +61,7 @@ class PlaybackService : Service() {
             myEngine = engine!!
         }
 
-        mySession = MediaSessionCompat(this, "TuneBox")
+        mySession = MediaSessionCompat(this, "TuneKuo")
         mySession.setFlags(
             MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
             MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS
@@ -199,7 +199,7 @@ class PlaybackService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle("TuneBox")
+            .setContentTitle("TuneKuo")
             .setContentText(text)
             .setContentIntent(pi)
             .setOngoing(true)

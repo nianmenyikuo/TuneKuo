@@ -1,4 +1,4 @@
-# TuneBox 🎵
+# TuneKuo 🎵
 
 ![界面语言](https://img.shields.io/badge/界面语言-简体中文-red) ![平台](https://img.shields.io/badge/平台-Android%207.0%2B-green) ![架构](https://img.shields.io/badge/架构-armeabi--v7a%20%7C%20arm64--v8a-blue)
 
