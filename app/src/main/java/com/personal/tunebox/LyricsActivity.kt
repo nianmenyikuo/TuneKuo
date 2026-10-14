@@ -1,5 +1,6 @@
 package com.personal.tunebox
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.Handler
@@ -15,6 +16,10 @@ import androidx.appcompat.app.AppCompatActivity
  * 从主界面底部小箭头进入。
  */
 class LyricsActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.wrap(newBase))
+    }
 
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var tvLines: List<TextView>
@@ -84,7 +89,7 @@ class LyricsActivity : AppCompatActivity() {
 
         // 歌名
         root.addView(TextView(this).apply {
-            text = song?.title ?: "未播放"
+            text = song?.title ?: getString(R.string.not_playing)
             setTextColor(0xFFFFFFFF.toInt())
             textSize = 22f
         })
@@ -98,7 +103,7 @@ class LyricsActivity : AppCompatActivity() {
         scroll = ScrollView(this)
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val list = if (lyrics.isEmpty())
-            listOf(LyricLine(0, "暂无歌词")) else lyrics
+            listOf(LyricLine(0, getString(R.string.no_lyrics))) else lyrics
         tvLines = list.map { line ->
             TextView(this).apply {
                 text = line.text

@@ -11,8 +11,8 @@ android {
         applicationId = "com.personal.tunebox"
         minSdk = 24          // Android 7.0
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.2"
         // 32 位优先（armeabi-v7a），同时保留 arm64 以便新机用户自选
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a")

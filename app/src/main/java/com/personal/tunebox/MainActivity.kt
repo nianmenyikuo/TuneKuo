@@ -1,19 +1,23 @@
 package com.personal.tunebox
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Paint
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.View
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -43,6 +47,20 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ivNowCover: ImageView
     private var loadedFor: String? = null   // 当前已加载封面/歌词的歌曲路径
 
+    // 两页式界面：主界面 / 设置页
+    private lateinit var rootSwipe: SwipeLayout
+    private lateinit var pageMain: View
+    private lateinit var pageSettings: View
+    private lateinit var optZh: TextView
+    private lateinit var optEn: TextView
+    private lateinit var optJa: TextView
+    private var showingSettings = false
+    private var scanning = false
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.wrap(newBase))
+    }
+
     private val tick = object : Runnable {
         override fun run() {
             val e = PlaybackService.engine
@@ -57,10 +75,10 @@ class MainActivity : AppCompatActivity() {
                 tvNowInfo.text = e.current!!.artist + " · " + e.current!!.album
                 btnPlay.setImageResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
                 val modeText = when (e.mode) {
-                    PlayMode.SEQUENTIAL -> "顺序"
-                    PlayMode.REPEAT_LIST -> "列表循环"
-                    PlayMode.REPEAT_ONE -> "单曲循环"
-                    PlayMode.SHUFFLE -> "随机"
+                    PlayMode.SEQUENTIAL -> getString(R.string.mode_sequential)
+                    PlayMode.REPEAT_LIST -> getString(R.string.mode_repeat_list)
+                    PlayMode.REPEAT_ONE -> getString(R.string.mode_repeat_one)
+                    else -> getString(R.string.mode_shuffle)
                 }
                 btnMode.text = modeText
                 tvMode.text = modeText
@@ -150,7 +168,149 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        setupPager()
         requestPermissionAndScan()
+    }
+
+    // ---------------- 两页式界面：主界面 ⇄ 设置页 ----------------
+
+    private fun setupPager() {
+        rootSwipe = findViewById(R.id.rootSwipe)
+        pageMain = findViewById(R.id.pageMain)
+        pageSettings = findViewById(R.id.pageSettings)
+
+        // 拖动进度条时不翻页
+        rootSwipe.exclude = seekBar
+        rootSwipe.onSwipeRight = { slideToSettings(true) }   // 主界面右滑 → 设置页
+        rootSwipe.onSwipeLeft = { slideToMain(true) }        // 设置页左滑 → 主界面
+
+        findViewById<View>(R.id.btnSettings).setOnClickListener { slideToSettings(true) }
+        findViewById<View>(R.id.btnRescan).setOnClickListener { rescan() }
+        findViewById<View>(R.id.btnBack).setOnClickListener { slideToMain(true) }
+
+        optZh = findViewById(R.id.optZh)
+        optEn = findViewById(R.id.optEn)
+        optJa = findViewById(R.id.optJa)
+        optZh.setOnClickListener { switchLanguage("zh") }
+        optEn.setOnClickListener { switchLanguage("en") }
+        optJa.setOnClickListener { switchLanguage("ja") }
+
+        val fb = findViewById<TextView>(R.id.btnFeedback)
+        fb.paintFlags = fb.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+        fb.setOnClickListener {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.feedback_url))))
+            } catch (_: Exception) {
+                // 没有浏览器等情况下静默忽略
+            }
+        }
+        val ver = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: ""
+        } catch (_: Exception) {
+            ""
+        }
+        findViewById<TextView>(R.id.tvVersion).text = getString(R.string.version_fmt, ver)
+        refreshLanguageOptions()
+
+        // 刚因为切换语言重建过 → 直接停在设置页
+        val prefs = LocaleHelper.pref(this)
+        if (prefs.getBoolean(LocaleHelper.KEY_OPEN_SETTINGS, false)) {
+            prefs.edit().putBoolean(LocaleHelper.KEY_OPEN_SETTINGS, false).apply()
+            slideToSettings(false)
+        }
+    }
+
+    private fun slideToSettings(animated: Boolean) {
+        if (showingSettings) return
+        showingSettings = true
+        val w = pageWidth()
+        pageSettings.visibility = View.VISIBLE
+        pageSettings.translationX = w.toFloat()
+        if (!animated) {
+            pageSettings.translationX = 0f
+            pageMain.visibility = View.GONE
+            return
+        }
+        pageSettings.animate().translationX(0f).setDuration(220).start()
+        pageMain.animate().translationX(-w.toFloat()).setDuration(220).withEndAction {
+            pageMain.visibility = View.GONE
+            pageMain.translationX = 0f
+        }.start()
+    }
+
+    private fun slideToMain(animated: Boolean) {
+        if (!showingSettings) return
+        showingSettings = false
+        val w = pageWidth()
+        pageMain.visibility = View.VISIBLE
+        pageMain.translationX = -w.toFloat()
+        if (!animated) {
+            pageMain.translationX = 0f
+            pageSettings.visibility = View.GONE
+            return
+        }
+        pageMain.animate().translationX(0f).setDuration(220).start()
+        pageSettings.animate().translationX(w.toFloat()).setDuration(220).withEndAction {
+            pageSettings.visibility = View.GONE
+            pageSettings.translationX = 0f
+        }.start()
+    }
+
+    private fun pageWidth(): Int {
+        val w = rootSwipe.width
+        return if (w > 0) w else resources.displayMetrics.widthPixels
+    }
+
+    private fun refreshLanguageOptions() {
+        val cur = LocaleHelper.current(this)
+        for ((tag, v) in listOf("zh" to optZh, "en" to optEn, "ja" to optJa)) {
+            val label = when (tag) {
+                "en" -> getString(R.string.lang_en)
+                "ja" -> getString(R.string.lang_ja)
+                else -> getString(R.string.lang_zh)
+            }
+            if (tag == cur) {
+                v.text = "✓  $label"
+                v.setTextColor(0xFFFFFFFF.toInt())
+                v.background = ContextCompat.getDrawable(this, R.drawable.bg_playing)
+            } else {
+                v.text = label
+                v.setTextColor(0xFFB0B0C0.toInt())
+                v.background = ContextCompat.getDrawable(this, R.drawable.bg_item)
+            }
+        }
+    }
+
+    private fun switchLanguage(tag: String) {
+        if (LocaleHelper.saved(this) == tag) return
+        LocaleHelper.set(this, tag)
+        LocaleHelper.pref(this).edit().putBoolean(LocaleHelper.KEY_OPEN_SETTINGS, true).apply()
+        recreate()
+    }
+
+    override fun onBackPressed() {
+        if (showingSettings) slideToMain(true) else super.onBackPressed()
+    }
+
+    // ---------------- 曲库 ----------------
+
+    /** 重新扫描曲库（右上角「重新扫描」，或首次进入时的权限通过后）。 */
+    private fun rescan() {
+        if (scanning) return
+        scanning = true
+        tvCount.text = getString(R.string.scanning)
+        ui.launch {
+            val list = withContext(Dispatchers.IO) { LibraryScanner.scan(this@MainActivity) }
+            songs.clear()
+            songs.addAll(list)
+            scanning = false
+            applyFilter()
+            Toast.makeText(
+                this@MainActivity,
+                getString(R.string.rescan_done, list.size),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     /** 按搜索词过滤展示列表（歌名/歌手/专辑，大小写不敏感）。 */
@@ -163,8 +323,8 @@ class MainActivity : AppCompatActivity() {
             it.album.contains(q, true)
         })
         adapter.notifyDataSetChanged()
-        tvCount.text = if (q.isEmpty()) "共 ${songs.size} 首"
-                       else "${display.size}/${songs.size} 首"
+        tvCount.text = if (q.isEmpty()) getString(R.string.count_all, songs.size)
+                       else getString(R.string.count_filtered, display.size, songs.size)
     }
 
     override fun onResume() {
@@ -193,10 +353,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun scan() {
+        if (scanning) return
+        scanning = true
+        tvCount.text = getString(R.string.scanning)
         ui.launch {
             val list = withContext(Dispatchers.IO) { LibraryScanner.scan(this@MainActivity) }
             songs.clear()
             songs.addAll(list)
+            scanning = false
             applyFilter()
         }
     }

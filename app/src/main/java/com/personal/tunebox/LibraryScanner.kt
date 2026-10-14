@@ -50,8 +50,8 @@ object LibraryScanner {
                             Song(
                                 path = path,
                                 title = c.getString(1) ?: File(path).nameWithoutExtension,
-                                artist = c.getString(2) ?: "未知艺术家",
-                                album = c.getString(3) ?: "未知专辑",
+                                artist = c.getString(2) ?: context.getString(R.string.unknown_artist),
+                                album = c.getString(3) ?: context.getString(R.string.unknown_album),
                                 durationMs = c.getLong(4),
                                 sizeBytes = c.getLong(5)
                             )
@@ -69,17 +69,17 @@ object LibraryScanner {
             File(android.os.Environment.getExternalStorageDirectory(), "Music")
         )
         for (root in roots) {
-            if (root != null && root.exists()) walk(root, seen, out)
+            if (root != null && root.exists()) walk(root, seen, out, context)
         }
 
         out.sortedBy { it.title.lowercase() }
     }
 
-    private fun walk(dir: File, seen: MutableSet<String>, out: MutableList<Song>) {
+    private fun walk(dir: File, seen: MutableSet<String>, out: MutableList<Song>, context: Context) {
         val files = dir.listFiles() ?: return
         for (f in files) {
             if (f.isDirectory) {
-                walk(f, seen, out)
+                walk(f, seen, out, context)
             } else {
                 val ext = f.extension.lowercase()
                 if ((COMMON_EXT.contains(ext) || EXTRA_EXT.contains(ext)) && seen.add(f.absolutePath)) {
@@ -87,8 +87,8 @@ object LibraryScanner {
                         Song(
                             path = f.absolutePath,
                             title = f.nameWithoutExtension,
-                            artist = "未知艺术家",
-                            album = "本地文件",
+                            artist = context.getString(R.string.unknown_artist),
+                            album = context.getString(R.string.local_file),
                             durationMs = 0L,
                             sizeBytes = f.length()
                         )

@@ -25,6 +25,10 @@ import kotlinx.coroutines.launch
  */
 class PlaybackService : Service() {
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(LocaleHelper.wrap(newBase))
+    }
+
     companion object {
         const val CHANNEL = "playback"
         const val NOTIF_ID = 100
@@ -52,7 +56,7 @@ class PlaybackService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(NOTIF_ID, buildNotification("就绪"))
+        startForeground(NOTIF_ID, buildNotification(getString(R.string.notif_ready)))
 
         if (engine == null) {
             myEngine = PlayerEngine(applicationContext)
@@ -154,7 +158,7 @@ class PlaybackService : Service() {
         // 通知栏媒体样式（锁屏显示同源）
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL, "播放服务", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL, getString(R.string.notif_channel_playback), NotificationManager.IMPORTANCE_LOW)
         )
         val pi = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java),
@@ -169,11 +173,11 @@ class PlaybackService : Service() {
             .setOnlyAlertOnce(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .apply { MediaArtHolder.cover?.let { setLargeIcon(it) } }
-            .addAction(android.R.drawable.ic_media_previous, "上一首",
+            .addAction(android.R.drawable.ic_media_previous, getString(R.string.notif_prev),
                 piAction(1, "PREV"))
             .addAction(if (e.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-                "播放暂停", piAction(2, "PLAYPAUSE"))
-            .addAction(android.R.drawable.ic_media_next, "下一首",
+                getString(R.string.notif_play_pause), piAction(2, "PLAYPAUSE"))
+            .addAction(android.R.drawable.ic_media_next, getString(R.string.notif_next),
                 piAction(3, "NEXT"))
             .setStyle(androidx.media.app.NotificationCompat.MediaStyle()
                 .setMediaSession(mySession.sessionToken)
@@ -192,7 +196,7 @@ class PlaybackService : Service() {
     private fun buildNotification(text: String): Notification {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL, "播放服务", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL, getString(R.string.notif_channel_playback), NotificationManager.IMPORTANCE_LOW)
         )
         val pi = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE

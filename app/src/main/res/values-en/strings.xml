@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TuneKuo</string>
+
+    <!-- Main screen -->
+    <string name="library_title">Music Library</string>
+    <string name="scanning">Scanning…</string>
+    <string name="search_hint">Search title / artist / album</string>
+    <string name="not_playing">Not playing</string>
+    <string name="count_all">%1$d songs</string>
+    <string name="count_filtered">%1$d/%2$d songs</string>
+    <string name="rescan">Rescan</string>
+    <string name="rescan_done">Rescanned: %1$d songs</string>
+
+    <!-- Play modes -->
+    <string name="mode_sequential">In order</string>
+    <string name="mode_repeat_list">Repeat list</string>
+    <string name="mode_repeat_one">Repeat one</string>
+    <string name="mode_shuffle">Shuffle</string>
+
+    <!-- Library info -->
+    <string name="unknown_artist">Unknown artist</string>
+    <string name="unknown_album">Unknown album</string>
+    <string name="local_file">Local file</string>
+
+    <!-- Lyrics screen -->
+    <string name="no_lyrics">No lyrics</string>
+
+    <!-- Settings screen -->
+    <string name="settings">Settings</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_feedback">Bug &amp; update feedback</string>
+    <string name="back">← Back</string>
+    <string name="version_fmt">TuneKuo %1$s</string>
+
+    <!-- Notification -->
+    <string name="notif_channel_playback">Playback service</string>
+    <string name="notif_ready">Ready</string>
+    <string name="notif_prev">Previous</string>
+    <string name="notif_play_pause">Play / Pause</string>
+    <string name="notif_next">Next</string>
+</resources>
