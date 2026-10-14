@@ -6,13 +6,16 @@ import json
 import os
 import queue
 import tkinter as tk
+import webbrowser
 from tkinter import filedialog, messagebox, ttk
 from typing import List, Optional
 
 import assoc
+from i18n import LANGS, current_language, set_language, t as tr
 from library import MetaLoader, default_roots, scan_paths
 from metadata import parse_lrc
 from player import PlayMode, Player, Track, fmt_time
+from version import APP_NAME, FEEDBACK_URL, VERSION
 
 try:
     from PIL import Image, ImageTk
@@ -149,23 +152,42 @@ class TuneKuoUI:
             except Exception:
                 pass
 
-        r.grid_rowconfigure(1, weight=1)
-        r.grid_columnconfigure(0, weight=1)
+        # 两个页面叠在同一个窗口里，用 place 的 x 坐标左右滑动切换（0=主界面，1=设置页）
+        self.offset = 0.0
+        self._anim = None
+        self._dragging = False
+        self._press_ok = False
+        self._press_x = 0
+        self._press_off = 0.0
+        self._tip_win = None
+        self.page_main = tk.Frame(r, bg=BG)
+        self.page_settings = tk.Frame(r, bg=BG)
+        for page in (self.page_main, self.page_settings):
+            page.place(x=0, y=0, relwidth=1, relheight=1)
+        main = self.page_main
+        main.grid_rowconfigure(1, weight=1)
+        main.grid_columnconfigure(0, weight=1)
 
         # ---- 顶部工具栏
-        top = tk.Frame(r, bg=BG)
+        top = tk.Frame(main, bg=BG)
         top.grid(row=0, column=0, sticky="ew", padx=14, pady=(12, 6))
         tk.Label(top, text="TuneKuo", bg=BG, fg=FG, font=(UI_FONT, 16, "bold")).pack(side="left")
-        self.lb_count = tk.Label(top, text="0 首", bg=BG, fg=FG_DIM, font=(UI_FONT, 9))
+        self.lb_count = tk.Label(top, text="", bg=BG, fg=FG_DIM, font=(UI_FONT, 9))
         self.lb_count.pack(side="left", padx=(10, 16))
 
-        self._btn(top, "添加文件", self.choose_files).pack(side="left", padx=3)
-        self._btn(top, "添加文件夹", self.choose_folder).pack(side="left", padx=3)
-        self._btn(top, "扫描音乐库", self.scan_library).pack(side="left", padx=3)
+        self.btn_add_files = self._btn(top, tr("tool.add_files"), self.choose_files)
+        self.btn_add_files.pack(side="left", padx=3)
+        self.btn_add_folder = self._btn(top, tr("tool.add_folder"), self.choose_folder)
+        self.btn_add_folder.pack(side="left", padx=3)
+        self.btn_scan = self._btn(top, tr("tool.scan_library"), self.scan_library)
+        self.btn_scan.pack(side="left", padx=3)
 
         right_box = tk.Frame(top, bg=BG)
         right_box.pack(side="right")
-        self.btn_default = self._btn(right_box, "设为默认播放器",
+        self.btn_settings = self._btn(right_box, tr("tool.settings"), self.show_settings)
+        self.btn_settings.pack(side="right", padx=(6, 0))
+        self._tip(self.btn_settings, "tip.settings")
+        self.btn_default = self._btn(right_box, tr("tool.set_default"),
                                      self.register_default, bg=ACCENT_D, fg="#FFFFFF")
         self.btn_default.pack(side="right", padx=(6, 0))
         self.var_search = tk.StringVar()
@@ -173,12 +195,14 @@ class TuneKuoUI:
         ent = tk.Entry(right_box, textvariable=self.var_search, bg=CARD, fg=FG, bd=0,
                        insertbackground=FG, font=(UI_FONT, 10), width=26)
         ent.pack(side="right", padx=(0, 6), ipady=6, ipadx=8)
-        ent.insert(0, "")
         self.search_entry = ent
+        self._placeholder = False
+        ent.bind("<FocusIn>", self._search_focus_in, add="+")
+        ent.bind("<FocusOut>", self._search_focus_out, add="+")
         tk.Label(right_box, text="\uE721", bg=BG, fg=FG_DIM, font=(ICON_FONT, 12)).pack(side="right", padx=(0, 6))
 
         # ---- 主体：左列表 + 右封面/歌词
-        body = tk.Frame(r, bg=BG)
+        body = tk.Frame(main, bg=BG)
         body.grid(row=1, column=0, sticky="nsew", padx=14)
         body.grid_rowconfigure(0, weight=1)
         body.grid_columnconfigure(0, weight=3)
@@ -189,10 +213,11 @@ class TuneKuoUI:
         left.grid_rowconfigure(0, weight=1)
         left.grid_columnconfigure(0, weight=1)
         cols = ("title", "artist", "album", "time")
+        self._tree_cols = (("title", "col.title", 300, "w"), ("artist", "col.artist", 170, "w"),
+                           ("album", "col.album", 170, "w"), ("time", "col.time", 70, "e"))
         self.tree = ttk.Treeview(left, columns=cols, show="headings", selectmode="browse")
-        for c, t, w, anchor in (("title", "标题", 300, "w"), ("artist", "歌手", 170, "w"),
-                                ("album", "专辑", 170, "w"), ("time", "时长", 70, "e")):
-            self.tree.heading(c, text=t)
+        for c, key, w, anchor in self._tree_cols:
+            self.tree.heading(c, text=tr(key))
             self.tree.column(c, width=w, anchor=anchor, stretch=(c == "title"))
         self.tree.grid(row=0, column=0, sticky="nsew")
         sb = ttk.Scrollbar(left, orient="vertical", command=self.tree.yview)
@@ -212,7 +237,7 @@ class TuneKuoUI:
         self.cover.grid(row=0, column=0, sticky="ew", pady=(14, 8))
         self.cover.bind("<Configure>", lambda e: self._render_cover())
 
-        self.lb_now = tk.Label(right, text="未在播放", bg=PANEL, fg=FG, font=(UI_FONT, 12, "bold"),
+        self.lb_now = tk.Label(right, text=tr("not_playing"), bg=PANEL, fg=FG, font=(UI_FONT, 12, "bold"),
                                wraplength=320, justify="center")
         self.lb_now.grid(row=1, column=0, sticky="ew", padx=14)
         self.lb_now_sub = tk.Label(right, text="", bg=PANEL, fg=FG_DIM, font=(UI_FONT, 9))
@@ -232,7 +257,7 @@ class TuneKuoUI:
         self.lyric_text.configure(yscrollcommand=lsb.set)
 
         # ---- 底部播放条
-        bottom = tk.Frame(r, bg=PANEL)
+        bottom = tk.Frame(main, bg=PANEL)
         bottom.grid(row=2, column=0, sticky="ew", padx=14, pady=(8, 12))
         bottom.grid_columnconfigure(1, weight=1)
 
@@ -247,7 +272,7 @@ class TuneKuoUI:
 
         ctl = tk.Frame(bottom, bg=PANEL)
         ctl.grid(row=1, column=0, columnspan=6, sticky="ew", pady=(6, 10))
-        self.btn_mode = self._btn(ctl, "列表循环", self.cycle_mode, width=10, pady=4)
+        self.btn_mode = self._btn(ctl, tr(f"mode.{PlayMode.REPEAT_LIST}"), self.cycle_mode, width=10, pady=4)
         self.btn_mode.pack(side="left", padx=(12, 8))
         self.btn_prev = self._btn(ctl, GLYPH_PREV, self.player.prev_manual, icon=True, font_size=15, padx=10, pady=2)
         self.btn_prev.pack(side="left", padx=2)
@@ -256,14 +281,18 @@ class TuneKuoUI:
         self.btn_play.pack(side="left", padx=2)
         self.btn_next = self._btn(ctl, GLYPH_NEXT, self.player.next_manual, icon=True, font_size=15, padx=10, pady=2)
         self.btn_next.pack(side="left", padx=2)
+        for widget, key in ((self.btn_mode, "tip.mode"), (self.btn_prev, "tip.prev"),
+                            (self.btn_play, "tip.play"), (self.btn_next, "tip.next")):
+            self._tip(widget, key)
 
-        self.lb_status = tk.Label(ctl, text="就绪", bg=PANEL, fg=FG_DIM, font=(UI_FONT, 9))
+        self.lb_status = tk.Label(ctl, text=tr("status.ready"), bg=PANEL, fg=FG_DIM, font=(UI_FONT, 9))
         self.lb_status.pack(side="left", padx=14)
 
         vol_box = tk.Frame(ctl, bg=PANEL)
         vol_box.pack(side="right", padx=12)
         self.btn_vol = self._btn(vol_box, GLYPH_VOL, self.toggle_mute, icon=True, font_size=12, padx=6, pady=2)
         self.btn_vol.pack(side="left")
+        self._tip(self.btn_vol, "tip.volume")
         self.vol = ttk.Scale(vol_box, from_=0, to=100, orient="horizontal", length=120,
                              command=self.on_volume)
         self.vol.set(80)
@@ -277,6 +306,262 @@ class TuneKuoUI:
         r.bind("<Left>", lambda e: self._on_arrow(-5000))
         r.bind("<Right>", lambda e: self._on_arrow(5000))
         r.bind("<Control-l>", lambda e: self.focus_lyrics())
+        r.bind("<Configure>", self._on_configure, add="+")
+
+        # ---- 设置页（同一窗口内，向右滑入）
+        self._build_settings_page()
+        self._apply_slide()
+        self.root.after(50, self._apply_slide)   # 窗口还没映射时 winfo_width() 是 1，映射后再摆一次
+        self._retranslate()
+        self.root.bind_all("<ButtonPress-1>", self._drag_press, add="+")
+        self.root.bind_all("<B1-Motion>", self._drag_motion, add="+")
+        self.root.bind_all("<ButtonRelease-1>", self._drag_release, add="+")
+
+    # ------------------------------------------------------------ 设置页
+    def _build_settings_page(self) -> None:
+        page = self.page_settings
+        page.grid_rowconfigure(1, weight=1)
+        page.grid_columnconfigure(0, weight=1)
+
+        head = tk.Frame(page, bg=BG)
+        head.grid(row=0, column=0, sticky="ew", padx=18, pady=(16, 10))
+        self.btn_back = self._btn(head, tr("settings.back"), self.show_main)
+        self.btn_back.pack(side="left")
+        self._tip(self.btn_back, "tip.back")
+        self.lb_settings_title = tk.Label(head, text=tr("settings.title"), bg=BG, fg=FG,
+                                          font=(UI_FONT, 16, "bold"))
+        self.lb_settings_title.pack(side="left", padx=(12, 0))
+
+        box = tk.Frame(page, bg=PANEL)
+        box.grid(row=1, column=0, sticky="nsew", padx=18, pady=(0, 10))
+        self.lb_lang_group = tk.Label(box, text=tr("settings.language"), bg=PANEL, fg=FG_DIM,
+                                      font=(UI_FONT, 10, "bold"))
+        self.lb_lang_group.pack(anchor="w", padx=16, pady=(14, 4))
+
+        self.lang_labels = {}
+        for code, native in LANGS:
+            lb = tk.Label(box, text=native, bg=PANEL, fg=FG, font=(UI_FONT, 12), anchor="w",
+                          cursor="hand2", padx=10, pady=6)
+            lb.pack(fill="x", padx=16, pady=2)
+            lb.bind("<Button-1>", lambda e, c=code: self.set_lang(c), add="+")
+            self.lang_labels[code] = lb
+
+        self.lb_feedback = tk.Label(box, text=tr("settings.feedback"), bg=PANEL, fg=ACCENT,
+                                    font=(UI_FONT, 10, "underline"), anchor="w", cursor="hand2")
+        self.lb_feedback.pack(fill="x", padx=16, pady=(18, 14))
+        self.lb_feedback.bind("<Button-1>", lambda e: self.open_feedback(), add="+")
+
+        self.lb_version = tk.Label(page, text=f"{APP_NAME} {VERSION}", bg=BG, fg=FG_DIM,
+                                   font=(UI_FONT, 9), anchor="w")
+        self.lb_version.grid(row=2, column=0, sticky="w", padx=20, pady=(0, 14))
+        self._apply_lang_highlight()
+
+    def _apply_lang_highlight(self) -> None:
+        """当前语言用高亮底色 + 强调色 + 圆点标出来。"""
+        cur = current_language()
+        mark = tr("settings.mark")
+        names = dict(LANGS)
+        for code, lb in getattr(self, "lang_labels", {}).items():
+            if code == cur:
+                lb.config(text=f"{mark} {names[code]}", bg=CARD_HI, fg=ACCENT,
+                          font=(UI_FONT, 12, "bold"))
+            else:
+                lb.config(text=names[code], bg=PANEL, fg=FG, font=(UI_FONT, 12))
+
+    def set_lang(self, code: str) -> None:
+        set_language(code)          # 同时写回 state.json 的 lang 字段
+        self._retranslate()
+
+    def open_feedback(self) -> None:
+        try:
+            webbrowser.open(FEEDBACK_URL)
+        except Exception:
+            pass                    # 打不开就算了，不弹错误框
+
+    # ------------------------------------------------------------ 语言热切换
+    def _retranslate(self) -> None:
+        """把所有界面文字按当前语言重刷一遍；播放与列表状态不受影响。"""
+        self.btn_add_files.config(text=tr("tool.add_files"))
+        self.btn_add_folder.config(text=tr("tool.add_folder"))
+        self.btn_scan.config(text=tr("tool.scan_library"))
+        self.btn_settings.config(text=tr("tool.settings"))
+        for col, key, _w, _a in self._tree_cols:
+            self.tree.heading(col, text=tr(key))
+        self.btn_back.config(text=tr("settings.back"))
+        self.lb_settings_title.config(text=tr("settings.title"))
+        self.lb_lang_group.config(text=tr("settings.language"))
+        self.lb_feedback.config(text=tr("settings.feedback"))
+        self._apply_lang_highlight()
+        self._update_placeholder()
+        self._update_count()
+        self._update_mode_button()
+        self._apply_default_button()
+        self._refresh_status()
+        cur = self.player.current()
+        if cur:
+            self._show_track(cur)
+        else:
+            self.lb_now.config(text=tr("not_playing"))
+            self.lb_now_sub.config(text="")
+            self._set_lyrics_text(tr("lyrics_empty"), "other")
+        self.root.title(f"{cur.display_title} - {self._artist(cur)} - TuneKuo" if cur else APP_NAME)
+
+    def _artist(self, track: Track) -> str:
+        return track.artist or tr("unknown_artist")
+
+    def _set_lyrics_text(self, text: str, tag: str = "other") -> None:
+        self.lyric_text.configure(state="normal")
+        self.lyric_text.delete("1.0", "end")
+        self.lrc_lines = []
+        self.lrc_line_no = []
+        self.current_lyric = -1
+        self.lyric_text.insert("end", text, tag)
+        self.lyric_text.configure(state="disabled")
+
+    # ------------------------------------------------------------ 页面切换
+    def is_settings(self) -> bool:
+        return self.offset > 0.5
+
+    def show_settings(self) -> None:
+        self._slide_to(1.0)
+
+    def show_main(self) -> None:
+        self._slide_to(0.0)
+
+    def _slide_to(self, target: float) -> None:
+        if self._anim is not None:
+            try:
+                self.root.after_cancel(self._anim)
+            except Exception:
+                pass
+            self._anim = None
+        self._animate(target)
+
+    def _animate(self, target: float) -> None:
+        self.offset += (target - self.offset) * 0.35
+        if abs(target - self.offset) < 0.012:
+            self.offset = target
+            self._apply_slide()
+            self._anim = None
+            return
+        self._apply_slide()
+        self._anim = self.root.after(12, lambda: self._animate(target))
+
+    def _apply_slide(self) -> None:
+        w = max(1, self.root.winfo_width())
+        off = int(round(self.offset * w))
+        self.page_main.place_configure(x=-off)
+        self.page_settings.place_configure(x=w - off)
+
+    def _on_configure(self, event=None) -> None:
+        # 窗口尺寸变了要重新摆位；拖动/动画过程中不打断
+        if event is not None and getattr(event, "widget", self.root) is not self.root:
+            return
+        if self._dragging or self._anim is not None:
+            return
+        self._apply_slide()
+
+    # 按住鼠标左右拖动切页（输入框/歌词框/滑杆/按钮上的拖动留给控件自己）
+    _NO_DRAG = ("Entry", "Text", "Scale", "Scrollbar", "TScrollbar",
+                "TScale", "Button", "TButton")
+
+    def _drag_ok(self, widget) -> bool:
+        try:
+            return widget.winfo_class() not in self._NO_DRAG
+        except Exception:
+            return False
+
+    def _drag_press(self, event) -> None:
+        self._dragging = False
+        self._press_ok = False
+        if self._anim is not None or not self._drag_ok(getattr(event, "widget", None)):
+            return
+        self._press_x = event.x_root
+        self._press_off = self.offset
+        self._press_ok = True
+
+    def _drag_motion(self, event) -> None:
+        if not self._press_ok or self._anim is not None:
+            return
+        dx = event.x_root - self._press_x
+        if not self._dragging:
+            if abs(dx) < 8:
+                return
+            self._dragging = True
+        w = max(1, self.root.winfo_width())
+        self.offset = max(0.0, min(1.0, self._press_off - dx / w))
+        self._apply_slide()
+
+    def _drag_release(self, event=None) -> None:
+        self._press_ok = False
+        if not self._dragging:
+            return
+        self._dragging = False
+        self._animate(1.0 if self.offset > 0.5 else 0.0)
+
+    # ------------------------------------------------------------ 小工具
+    def _tip(self, widget, key: str) -> None:
+        """悬停提示；文字在悬停时才取，所以切语言后自动跟着变。"""
+        def show(_e=None):
+            self._tip_hide()
+            try:
+                win = tk.Toplevel(widget)
+                win.wm_overrideredirect(True)
+                win.attributes("-topmost", True)
+                tk.Label(win, text=tr(key), bg=CARD, fg=FG, font=(UI_FONT, 9),
+                         padx=8, pady=4, bd=0).pack()
+                win.wm_geometry("+%d+%d" % (widget.winfo_rootx() + 10,
+                                            widget.winfo_rooty() + widget.winfo_height() + 6))
+                self._tip_win = win
+            except Exception:
+                self._tip_win = None
+
+        def hide(_e=None):
+            self._tip_hide()
+
+        widget.bind("<Enter>", show, add="+")
+        widget.bind("<Leave>", hide, add="+")
+        widget.bind("<ButtonPress>", hide, add="+")
+
+    def _tip_hide(self) -> None:
+        win = getattr(self, "_tip_win", None)
+        self._tip_win = None
+        if win is not None:
+            try:
+                win.destroy()
+            except Exception:
+                pass
+
+    def _query(self) -> str:
+        raw = self.var_search.get()
+        if self._placeholder and raw == tr("tool.search_hint"):
+            return ""
+        return raw.strip().lower()
+
+    def _update_placeholder(self) -> None:
+        hint = tr("tool.search_hint")
+        if self._placeholder and self.var_search.get() != hint:
+            self._placeholder = False         # 换语言时旧提示文字要丢掉
+        if self._placeholder:
+            self.var_search.set("")
+        if not self.var_search.get():
+            self._placeholder = True
+            self.var_search.set(hint)
+            self.search_entry.config(fg=FG_DIM)
+        else:
+            self.search_entry.config(fg=FG)
+
+    def _search_focus_in(self, event=None) -> None:
+        if self._placeholder:
+            self._placeholder = False
+            self.var_search.set("")
+        self.search_entry.config(fg=FG)
+
+    def _search_focus_out(self, event=None) -> None:
+        if not self.var_search.get():
+            self._placeholder = True
+            self.var_search.set(tr("tool.search_hint"))
+            self.search_entry.config(fg=FG_DIM)
 
     # 空格/方向键在输入框里要正常打字，不能被快捷键抢走
     def _typing(self) -> bool:
@@ -287,13 +572,13 @@ class TuneKuoUI:
         return isinstance(w, (tk.Entry, tk.Text))
 
     def _on_space(self, event=None):
-        if self._typing():
+        if self._typing() or self.is_settings():
             return None
         self.toggle_play()
         return "break"
 
     def _on_arrow(self, delta: int):
-        if self._typing():
+        if self._typing() or self.is_settings():
             return None
         self.player.seek(self.player.get_time() + delta)
         return "break"
@@ -305,9 +590,20 @@ class TuneKuoUI:
     def _meta_loaded(self, gen: int, track: Track) -> None:
         self.evq.put(("meta", gen, track))
 
-    def set_status(self, text: str) -> None:
+    def set_status(self, text: str = "", key: Optional[str] = None, **kw) -> None:
+        """状态栏文字；传 key=（i18n 键）时切换语言会自动跟着变。"""
+        if key is not None:
+            self._status_key = (key, dict(kw))
+            text = tr(key, **kw)
         try:
             self.lb_status.config(text=text)
+        except Exception:
+            pass
+
+    def _refresh_status(self) -> None:
+        key, kw = getattr(self, "_status_key", ("status.ready", {}))
+        try:
+            self.lb_status.config(text=tr(key, **kw))
         except Exception:
             pass
 
@@ -315,12 +611,12 @@ class TuneKuoUI:
     def add_paths(self, paths: List[str], autoplay: bool = True) -> None:
         files = scan_paths(paths)
         if not files:
-            self.set_status("没有找到音频文件")
+            self.set_status(key="status.no_audio")
             return
         existing = {os.path.normcase(t.path) for t in self.player.tracks}
         fresh = [f for f in files if os.path.normcase(f) not in existing]
         if not fresh:
-            self.set_status("这些文件已经在列表里了")
+            self.set_status(key="status.duplicates")
             return
         start = len(self.player.tracks)
         tracks = [Track(path=f) for f in fresh]
@@ -331,7 +627,7 @@ class TuneKuoUI:
         for i, t in enumerate(tracks):
             self.loader.submit(self.gen, start + i, t)
         self.refresh_list()
-        self.set_status(f"已添加 {len(tracks)} 首，正在读取信息…")
+        self.set_status(key="status.added", n=len(tracks))
         if autoplay and self.player.index < 0:
             self.player.play_index(start, autoplay=True)
         self.save_state()
@@ -340,7 +636,7 @@ class TuneKuoUI:
         self.apply_filter()
 
     def apply_filter(self) -> None:
-        q = self.var_search.get().strip().lower()
+        q = self._query()
         tracks = self.player.tracks
         self.tree.delete(*self.tree.get_children())
         self.view = []
@@ -350,9 +646,16 @@ class TuneKuoUI:
             self.view.append(i)
             tags = ("playing",) if i == self.player.index else ()
             self.tree.insert("", "end", iid=str(i), tags=tags,
-                             values=(t.display_title, t.display_artist, t.album, fmt_time(t.duration)))
-        self.lb_count.config(text=f"{len(self.view)} / {len(tracks)} 首" if q else f"{len(tracks)} 首")
+                             values=(t.display_title, self._artist(t), t.album, fmt_time(t.duration)))
+        self._update_count()
         self._highlight_current()
+
+    def _update_count(self) -> None:
+        total = len(self.player.tracks)
+        if self._query():
+            self.lb_count.config(text=tr("count.filtered", n=len(getattr(self, "view", [])), total=total))
+        else:
+            self.lb_count.config(text=tr("count.all", n=total))
 
     def _highlight_current(self) -> None:
         for iid in self.tree.get_children():
@@ -380,10 +683,10 @@ class TuneKuoUI:
         idx = int(row)
         m = tk.Menu(self.root, tearoff=0, bg=CARD, fg=FG, activebackground=ACCENT_D,
                     activeforeground="#FFFFFF", bd=0)
-        m.add_command(label="播放", command=lambda: self.player.play_index(idx))
-        m.add_command(label="在文件夹中显示", command=lambda: self.reveal(idx))
+        m.add_command(label=tr("menu.play"), command=lambda: self.player.play_index(idx))
+        m.add_command(label=tr("menu.reveal"), command=lambda: self.reveal(idx))
         m.add_separator()
-        m.add_command(label="从列表移除", command=lambda: self.remove_track(idx))
+        m.add_command(label=tr("menu.remove"), command=lambda: self.remove_track(idx))
         try:
             m.tk_popup(event.x_root, event.y_root)
         finally:
@@ -427,52 +730,53 @@ class TuneKuoUI:
     # ------------------------------------------------------------ 顶部按钮
     def choose_files(self) -> None:
         files = filedialog.askopenfilenames(
-            title="选择音乐文件",
-            filetypes=[("音频文件", "*.mp3 *.flac *.ape *.wav *.m4a *.aac *.ogg *.opus *.wma *.aiff *.dsf *.dff *.wv *.tta *.tak *.mka *.ac3 *.dts"),
-                       ("所有文件", "*.*")])
+            title=tr("dlg.choose_files"),
+            filetypes=[(tr("dlg.ft_audio"), "*.mp3 *.flac *.ape *.wav *.m4a *.aac *.ogg *.opus *.wma *.aiff *.dsf *.dff *.wv *.tta *.tak *.mka *.ac3 *.dts"),
+                       (tr("dlg.ft_all"), "*.*")])
         if files:
             self.add_paths(list(files))
 
     def choose_folder(self) -> None:
-        d = filedialog.askdirectory(title="选择音乐文件夹")
+        d = filedialog.askdirectory(title=tr("dlg.choose_folder"))
         if d:
             self.add_paths([d])
 
     def scan_library(self) -> None:
         roots = default_roots()
         if not roots:
-            self.set_status("没找到默认音乐目录，请用“添加文件夹”")
+            self.set_status(key="status.no_music_dir")
             return
-        self.set_status("正在扫描音乐库…")
+        self.set_status(key="status.scanning")
         self.root.update_idletasks()
         self.add_paths(roots)
-        self.set_status(f"扫描完成：{len(self.player.tracks)} 首")
+        self.set_status(key="status.scanned", n=len(self.player.tracks))
 
     def register_default(self) -> None:
         try:
             done = assoc.register()
         except Exception as e:
-            messagebox.showerror("注册失败", f"写入注册表时出错：\n{e}")
+            messagebox.showerror(tr("dlg.register_failed_title"), tr("dlg.register_failed_body", e=e))
             return
-        n = assoc.default_count()
         self._refresh_default_status()
-        msg = ("已注册为音频播放器：\n\n- " + "\n- ".join(done) +
-               f"\n\n当前已有 {n} / {len(assoc.EXTS)} 种格式的默认程序是 TuneKuo。\n\n"
-               "Windows 10/11 的默认程序由用户确认，接下来我会打开系统“默认应用”页面，"
-               "在音乐播放器那一项选择 TuneKuo 即可全部生效。")
-        messagebox.showinfo("注册完成", msg)
+        msg = tr("dlg.register_done", done="\n- ".join(done),
+                 n=getattr(self, "_default_n", 0), total=len(assoc.EXTS))
+        messagebox.showinfo(tr("dlg.register_done_title"), msg)
         assoc.open_default_apps_settings()
 
     def _refresh_default_status(self) -> None:
         try:
-            n = assoc.default_count()
+            self._default_n = assoc.default_count()
         except Exception:
             return
-        total = len(assoc.EXTS)
+        self._apply_default_button()
+
+    def _apply_default_button(self) -> None:
+        n = getattr(self, "_default_n", 0)
         if n:
-            self.btn_default.config(text=f"默认播放器 {n}/{total}", bg=GREEN, fg="#0B2B14")
+            self.btn_default.config(text=tr("tool.default_ok", n=n, total=len(assoc.EXTS)),
+                                    bg=GREEN, fg="#0B2B14")
         else:
-            self.btn_default.config(text="设为默认播放器", bg=ACCENT_D, fg="#FFFFFF")
+            self.btn_default.config(text=tr("tool.set_default"), bg=ACCENT_D, fg="#FFFFFF")
 
     # ------------------------------------------------------------ 播放控制
     def toggle_play(self) -> None:
@@ -487,11 +791,16 @@ class TuneKuoUI:
         self.save_state()
 
     def _update_mode_button(self) -> None:
-        self.btn_mode.config(text=PlayMode.LABELS[self.player.mode])
+        self.btn_mode.config(text=tr(f"mode.{self.player.mode}"))
 
     def on_escape(self, event=None) -> None:
-        if self.var_search.get():
+        if self.is_settings():
+            self.show_main()
+            return "break"
+        if self.var_search.get() and not self._placeholder:
             self.var_search.set("")
+            self._search_focus_out()
+            return "break"
 
     def focus_lyrics(self) -> None:
         self.lyric_text.focus_set()
@@ -553,18 +862,19 @@ class TuneKuoUI:
                 self._on_track_changed()
             elif a == "playing":
                 self.btn_play.config(text=GLYPH_PAUSE)
-                self.set_status("播放中")
+                self.set_status(key="status.playing")
                 self._highlight_current()
             elif a in ("paused", "stopped"):
                 self.btn_play.config(text=GLYPH_PLAY)
-                self.set_status("已暂停" if a == "paused" else "已停止")
+                self.set_status(key="status.paused" if a == "paused" else "status.stopped")
             elif a == "ended":
                 self.btn_play.config(text=GLYPH_PLAY)
             elif a == "error":
-                self.set_status("这个文件播放失败（可能格式不受支持）")
+                self.set_status(key="status.play_failed")
                 cur = self.player.current()
                 if cur:
-                    messagebox.showwarning("播放失败", f"无法播放：\n{os.path.basename(cur.path)}")
+                    messagebox.showwarning(tr("dlg.play_failed_title"),
+                                           tr("dlg.play_failed_body", name=os.path.basename(cur.path)))
             elif a == "length":
                 self.lb_len.config(text=fmt_time(int(b or 0)))
                 idx = self.player.index
@@ -577,7 +887,7 @@ class TuneKuoUI:
             idx = self._idx_by_id.get(id(track))
             if idx is None or not self.tree.exists(str(idx)):
                 return
-            self.tree.item(str(idx), values=(track.display_title, track.display_artist,
+            self.tree.item(str(idx), values=(track.display_title, self._artist(track),
                                              track.album, fmt_time(track.duration)))
             if idx == self.player.index:
                 self._show_track(track)
@@ -601,12 +911,12 @@ class TuneKuoUI:
         self.lb_len.config(text=fmt_time(self.player.get_length() or (t.duration if t else 0)))
         if t:
             self._show_track(t)
-            self.root.title(f"{t.display_title} - {t.display_artist} - TuneKuo")
+            self.root.title(f"{t.display_title} - {self._artist(t)} - TuneKuo")
         self.save_state()
 
     def _show_track(self, t: Track) -> None:
         self.lb_now.config(text=t.display_title)
-        self.lb_now_sub.config(text=f"{t.display_artist} · {t.album}" if t.album else t.display_artist)
+        self.lb_now_sub.config(text=f"{self._artist(t)} · {t.album}" if t.album else self._artist(t))
         self._set_cover(t.cover)
         self._set_lyrics(t)
 
@@ -643,7 +953,7 @@ class TuneKuoUI:
         # 占位：圆角方块 + 音符
         c.create_rectangle(x0, y0, x0 + size, y0 + size, fill=CARD, outline="")
         c.create_text(w / 2, h / 2 - 14, text=GLYPH_MUSIC, fill="#4A4A66", font=(ICON_FONT, int(size / 4)))
-        c.create_text(w / 2, y0 + size - 26, text="无封面", fill="#4A4A66", font=(UI_FONT, 9))
+        c.create_text(w / 2, y0 + size - 26, text=tr("no_cover"), fill="#4A4A66", font=(UI_FONT, 9))
 
     # ------------------------------------------------------------ 歌词
     def _set_lyrics(self, t: Track) -> None:
@@ -654,7 +964,7 @@ class TuneKuoUI:
         self.current_lyric = -1
         text = (t.lyrics or "").strip()
         if not text:
-            self.lyric_text.insert("end", "暂无歌词\n\n把同名 .lrc 文件放在歌曲旁边即可显示", "other")
+            self.lyric_text.insert("end", tr("lyrics_empty"), "other")
             self.lyric_text.configure(state="disabled")
             return
         parsed = parse_lrc(text)
@@ -695,13 +1005,22 @@ class TuneKuoUI:
     # ------------------------------------------------------------ 状态存取
     def save_state(self) -> None:
         try:
-            data = {
+            data = {}
+            try:                     # 先读出已有的键（如 lang），只覆盖自己管的那几个
+                with open(STATE_FILE, "r", encoding="utf-8") as fp:
+                    old = json.load(fp)
+                if isinstance(old, dict):
+                    data.update(old)
+            except Exception:
+                pass
+            data.update({
                 "tracks": [t.path for t in self.player.tracks][:MAX_STATE_TRACKS],
                 "index": self.player.index,
                 "volume": self.player.get_volume(),
                 "mode": self.player.mode,
                 "position": self.player.get_time(),
-            }
+                "lang": current_language(),
+            })
             with open(STATE_FILE, "w", encoding="utf-8") as fp:
                 json.dump(data, fp, ensure_ascii=False)
         except Exception:
@@ -715,6 +1034,10 @@ class TuneKuoUI:
                 data = json.load(fp)
         except Exception:
             return
+        lang = data.get("lang")
+        if isinstance(lang, str) and lang != current_language() and lang in {c for c, _ in LANGS}:
+            set_language(lang, save=False)      # 启动时按记住的语言显示
+            self._retranslate()
         paths = [p for p in data.get("tracks", []) if isinstance(p, str) and os.path.isfile(p)]
         if paths:
             tracks = [Track(path=p) for p in paths]
@@ -735,6 +1058,10 @@ class TuneKuoUI:
 
     # ------------------------------------------------------------ 关闭
     def on_close(self) -> None:
+        try:
+            self._tip_hide()
+        except Exception:
+            pass
         try:
             self.save_state()
         except Exception:

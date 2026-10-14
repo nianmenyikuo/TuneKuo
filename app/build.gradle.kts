@@ -13,9 +13,12 @@ android {
         targetSdk = 34
         versionCode = 2
         versionName = "1.0.2"
-        // 32 位优先（armeabi-v7a），同时保留 arm64 以便新机用户自选
+        // 32 位优先（armeabi-v7a），同时保留 arm64 以便新机用户自选。
+        // 模拟器（x86_64）上测试时加参数：gradle assembleDebug -Pemu
+        val abis = mutableListOf("armeabi-v7a", "arm64-v8a")
+        if (project.hasProperty("emu")) abis.add("x86_64")
         ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+            abiFilters += abis
         }
     }
 

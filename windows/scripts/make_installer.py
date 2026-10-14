@@ -16,9 +16,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "app"))
 
 import assoc  # noqa: E402
+import version as app_version  # noqa: E402
 
-APP_NAME = "TuneKuo"
-APP_VERSION = "1.0.1"
+APP_NAME = app_version.APP_NAME
+APP_VERSION = app_version.VERSION
 APP_EXE = "TuneKuo.exe"
 PROGID = assoc.PROGID
 BUILD_DIR = os.path.join(ROOT, "dist", "TuneKuo")
