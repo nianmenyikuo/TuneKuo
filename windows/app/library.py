@@ -19,6 +19,7 @@ PARSE_FLAG = vlc.MediaParseFlag(
 
 from metadata import AUDIO_EXTS, PLAYLIST_EXTS, parse_playlist, read_tags
 from player import Track
+import online
 
 SKIP_DIRS = {"$recycle.bin", "system volume information", "windows", "program files",
              "program files (x86)", "programdata", "appdata", "node_modules", ".git",
@@ -184,6 +185,17 @@ class MetaLoader:
         if tags.get("lyrics"):
             track.lyrics = tags["lyrics"]
             track.has_lrc = bool(tags.get("has_lrc"))
+        # 标签和旁边的 .lrc 都没有时，才用「联网获取」缓存下来的歌词/封面
+        if not track.lyrics:
+            track.lyrics = online.cached_lyrics(track.path)
+        if not track.cover:
+            track.cover = online.cached_cover(track.path)
+        # 之前联网取到过的曲目信息（歌名/歌手/专辑）也一并生效
+        meta = online.cached_meta(track.path)
+        if meta:
+            track.title = meta["title"] or track.title
+            track.artist = meta["artist"] or track.artist
+            track.album = meta["album"] or track.album
         # 只有标签里没拿到时长/标题/歌手时才花时间问 libvlc（DSD、TAK 等自研解析覆盖不到的格式也靠它）
         if track.duration <= 0 or not track.title or not track.artist:
             self._load_from_vlc(track)

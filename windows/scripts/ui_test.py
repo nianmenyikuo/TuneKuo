@@ -31,6 +31,7 @@ if vlcenv.LIB is None:
 import tkinter as tk  # noqa: E402
 
 from ui import TuneKuoUI  # noqa: E402
+from version import VERSION  # noqa: E402
 
 
 def make_wav(path: str, seconds: float = 6.0, rate: int = 44100) -> None:
@@ -94,6 +95,93 @@ pump(0.3)
 print("恢复过滤后  :", len(app.tree.get_children()))
 app.var_search.set("")
 
+# ---------------------------------------------------------------- 右键菜单 / 歌曲信息
+m = app._row_menu(0)
+labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1) if m.type(i) == "command"]
+print("右键菜单    :", labels)
+for want in ("播放", "联网获取歌曲信息（含歌词）", "歌曲详情", "复制歌名", "复制文件路径",
+             "在文件夹中显示", "从列表移除"):
+    if want not in labels:
+        errors.append(f"右键菜单缺了「{want}」")
+m.destroy()
+
+app.copy_text(app.player.tracks[0].path)
+pump(0.2)
+try:
+    clip = app.root.clipboard_get()
+except Exception:
+    clip = ""
+print("剪贴板      :", repr(clip))
+if os.path.normcase(clip) != os.path.normcase(app.player.tracks[0].path):
+    errors.append(f"剪贴板内容不对: {clip!r}")
+if app.lb_status.cget("text") != "已复制到剪贴板":
+    errors.append("复制后状态栏不对: " + app.lb_status.cget("text"))
+
+
+class _FakeBox:
+    """把 messagebox 换掉：弹窗是模态的，自检里只记录不真的弹。"""
+
+    def __init__(self) -> None:
+        self.calls = []
+
+    def showinfo(self, title, msg, **kw) -> None:
+        self.calls.append(("info", title, msg))
+
+    def showwarning(self, title, msg, **kw) -> None:
+        self.calls.append(("warn", title, msg))
+
+
+import online as online_mod  # noqa: E402
+import ui as ui_mod  # noqa: E402
+
+fake = _FakeBox()
+real_box = ui_mod.messagebox
+ui_mod.messagebox = fake
+
+app.show_song_detail(0)
+print("详情弹窗    :", fake.calls[-1][1], "|", fake.calls[-1][2].replace("\n", " / ")[:90])
+if fake.calls[-1][0] != "info" or "路径" not in fake.calls[-1][2]:
+    errors.append("歌曲详情弹窗内容不对")
+
+# 联网获取：online.fetch 换成桩，只验证「后台线程 -> 事件队列 -> 界面生效」这条链路
+real_fetch = online_mod.fetch
+online_mod.fetch = lambda t: online_mod.Info(
+    "晴天", "周杰伦", "叶惠美", "2003", "Mandopop", "iTunes", "LRCLIB",
+    b"\xff\xd8\xff" + b"0" * 64, "[00:01.00]第一句\n[00:02.00]第二句\n")
+app.fetch_online(0)
+deadline = time.time() + 5
+while time.time() < deadline and len(fake.calls) < 2:
+    pump(0.1)
+online_mod.fetch = real_fetch
+t0 = app.player.tracks[0]
+print("联网后曲目  :", repr(t0.lyrics), "| 封面", len(t0.cover or b""), "字节")
+print("联网后状态  :", app.lb_status.cget("text"))
+if "第一句" not in (t0.lyrics or ""):
+    errors.append("联网获取的歌词没写进曲目")
+if not t0.cover:
+    errors.append("联网获取的封面没写进曲目")
+if len(fake.calls) < 2 or fake.calls[-1][0] != "info":
+    errors.append(f"联网获取成功后没弹信息框: {fake.calls[-1:]}")
+elif "来源" not in fake.calls[-1][2]:
+    errors.append("信息框里没有来源行")
+
+row = app.tree.item("0", "values")            # 取到的信息要自动替换列表里那一行
+print("列表已替换  :", row)
+if row[0] != "晴天" or row[1] != "周杰伦":
+    errors.append(f"联网获取后列表没替换: {row}")
+
+# 获取失败要报错而不是静默
+online_mod.fetch = lambda t: None
+app.fetch_online(0)
+deadline = time.time() + 5
+while time.time() < deadline and len(fake.calls) < 3:
+    pump(0.1)
+online_mod.fetch = real_fetch
+if len(fake.calls) < 3 or fake.calls[-1][0] != "warn":
+    errors.append(f"联网失败没提示: {fake.calls[-1:]}")
+
+ui_mod.messagebox = real_box
+
 # 播放 + 歌词跟随
 app.player.play_index(0)
 pump(3.0)
@@ -138,7 +226,7 @@ if app.lb_settings_title.cget("text") != "设置":
     errors.append("设置页标题不对: " + app.lb_settings_title.cget("text"))
 if app.offset != 1.0:
     errors.append(f"没有滑到设置页: offset={app.offset}")
-if app.lb_version.cget("text") != "TuneKuo 1.0.2":
+if app.lb_version.cget("text") != f"TuneKuo {VERSION}":
     errors.append("版本号不对: " + app.lb_version.cget("text"))
 
 # 设置页内容从上到下：标题 -> 语言 -> 反馈链接 -> 版本号

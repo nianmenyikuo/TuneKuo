@@ -5,12 +5,14 @@ import io
 import json
 import os
 import queue
+import threading
 import tkinter as tk
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
 from typing import List, Optional
 
 import assoc
+import online
 from i18n import LANGS, current_language, set_language, t as tr
 from library import MetaLoader, default_roots, scan_paths
 from metadata import parse_lrc
@@ -57,6 +59,18 @@ def state_dir() -> str:
 
 STATE_FILE = os.path.join(state_dir(), "state.json")
 MAX_STATE_TRACKS = 3000
+
+
+def human_size(n: int) -> str:
+    """文件大小的可读写法。"""
+    if not n or n <= 0:
+        return "-"
+    size = float(n)
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024 or unit == "GB":
+            return f"{int(size)} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024.0
+    return "-"
 
 
 def assets_dir() -> str:
@@ -680,17 +694,126 @@ class TuneKuoUI:
         if not row:
             return
         self.tree.selection_set(row)
-        idx = int(row)
-        m = tk.Menu(self.root, tearoff=0, bg=CARD, fg=FG, activebackground=ACCENT_D,
-                    activeforeground="#FFFFFF", bd=0)
-        m.add_command(label=tr("menu.play"), command=lambda: self.player.play_index(idx))
-        m.add_command(label=tr("menu.reveal"), command=lambda: self.reveal(idx))
-        m.add_separator()
-        m.add_command(label=tr("menu.remove"), command=lambda: self.remove_track(idx))
+        m = self._row_menu(int(row))
         try:
             m.tk_popup(event.x_root, event.y_root)
         finally:
             m.grab_release()
+
+    def _row_menu(self, idx: int) -> tk.Menu:
+        m = tk.Menu(self.root, tearoff=0, bg=CARD, fg=FG, activebackground=ACCENT_D,
+                    activeforeground="#FFFFFF", bd=0)
+        m.add_command(label=tr("menu.play"), command=lambda: self.player.play_index(idx))
+        m.add_separator()
+        m.add_command(label=tr("menu.fetch_info"), command=lambda: self.fetch_online(idx))
+        m.add_command(label=tr("menu.detail"), command=lambda: self.show_song_detail(idx))
+        m.add_command(label=tr("menu.copy_title"),
+                      command=lambda: self.copy_text(self._display_title(idx)))
+        m.add_command(label=tr("menu.copy_path"),
+                      command=lambda: self.copy_text(self._track_path(idx)))
+        m.add_separator()
+        m.add_command(label=tr("menu.reveal"), command=lambda: self.reveal(idx))
+        m.add_command(label=tr("menu.remove"), command=lambda: self.remove_track(idx))
+        return m
+
+    def _track_at(self, idx: int) -> Optional[Track]:
+        return self.player.tracks[idx] if 0 <= idx < len(self.player.tracks) else None
+
+    def _display_title(self, idx: int) -> str:
+        t = self._track_at(idx)
+        return (t.title or t.display_title) if t else ""
+
+    def _track_path(self, idx: int) -> str:
+        t = self._track_at(idx)
+        return t.path if t else ""
+
+    def copy_text(self, text: str) -> None:
+        if not text:
+            return
+        try:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(text)
+            self.set_status(key="copied")
+        except Exception:
+            pass
+
+    def _kv(self, key: str, value) -> str:
+        return tr("kv_fmt", k=tr(key), v=value)
+
+    def show_song_detail(self, idx: int) -> None:
+        """文件本身的信息，不联网。"""
+        t = self._track_at(idx)
+        if not t:
+            return
+        try:
+            size = os.path.getsize(t.path)
+        except Exception:
+            size = 0
+        ext = os.path.splitext(t.path)[1].lstrip(".").upper() or "?"
+        body = "\n".join((
+            self._kv("detail.title", t.display_title),
+            self._kv("detail.artist", self._artist(t)),
+            self._kv("detail.album", t.album or "-"),
+            self._kv("detail.duration", fmt_time(t.duration)),
+            self._kv("detail.format", ext),
+            self._kv("detail.size", human_size(size)),
+            self._kv("detail.path", t.path),
+        ))
+        messagebox.showinfo(tr("menu.detail"), body)
+
+    def fetch_online(self, idx: int) -> None:
+        """联网取元数据/封面/歌词：结果写缓存并当场生效（正在播放的立刻换封面与歌词）。"""
+        t = self._track_at(idx)
+        if not t:
+            return
+        self.set_status(key="fetching_online")
+
+        def work() -> None:
+            try:
+                info = online.fetch(t)
+            except Exception:
+                info = None
+            self.evq.put(("online", idx, info))     # 回主线程再动界面
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _apply_online(self, idx: int, info) -> None:
+        t = self._track_at(idx)
+        if not t:
+            return
+        if info is None:
+            self.set_status(key="fetch_failed")
+            messagebox.showwarning(tr("menu.fetch_info"), tr("fetch_failed"))
+            return
+        # 取到的信息直接替换到曲目上（列表和正在播放栏立刻更新），歌词/封面同时生效
+        t.title = info.title or t.title
+        t.artist = info.artist or t.artist
+        t.album = info.album or t.album
+        if info.lyrics:
+            t.lyrics = info.lyrics
+        if info.cover:
+            t.cover = info.cover
+        if self.tree.exists(str(idx)):
+            self.tree.item(str(idx), values=(t.display_title, self._artist(t), t.album,
+                                             fmt_time(t.duration)))
+        if idx == self.player.index:
+            self._show_track(t)                      # 正在播的那首立刻换封面/歌词
+        n = len(parse_lrc(info.lyrics)) or len([l for l in info.lyrics.splitlines() if l.strip()])
+        src = " · ".join(x for x in (info.meta_source, info.lyric_source) if x)
+        self.set_status(key="fetch_ok", src=src, n=n)
+        body = [self._kv("detail.title", info.title),
+                self._kv("detail.artist", info.artist or "-")]
+        if info.album:
+            body.append(self._kv("detail.album", info.album))
+        if info.year:
+            body.append(self._kv("detail.year", info.year))
+        if info.genre:
+            body.append(self._kv("detail.genre", info.genre))
+        if src:
+            body.append(self._kv("detail.source", src))
+        body.append(self._kv("detail.cover", tr("got") if info.cover else tr("not_found")))
+        body.append(tr("fetch_lyrics_ok", n=n) if n else tr("fetch_lyrics_none"))
+        messagebox.showinfo(tr("menu.fetch_info"), "\n".join(body))
 
     def reveal(self, idx: int) -> None:
         t = self.player.tracks[idx] if 0 <= idx < len(self.player.tracks) else None
@@ -891,6 +1014,8 @@ class TuneKuoUI:
                                              track.album, fmt_time(track.duration)))
             if idx == self.player.index:
                 self._show_track(track)
+        elif kind == "online":
+            self._apply_online(a, b)
         elif kind == "path":
             self.root.deiconify()
             self.root.lift()
