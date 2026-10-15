@@ -39,6 +39,33 @@
     <string name="lang_en" translatable="false">English</string>
     <string name="lang_ja" translatable="false">日本語</string>
 
+    <!-- 长按歌曲菜单 -->
+    <string name="menu_fetch_info">联网获取歌曲信息（含歌词）</string>
+    <string name="menu_detail">歌曲详情</string>
+    <string name="menu_copy_title">复制歌名</string>
+    <string name="menu_copy_path">复制文件路径</string>
+    <string name="fetching_online">正在联网获取…</string>
+    <string name="fetch_failed">联网获取失败：没找到这首歌的信息</string>
+    <string name="fetch_lyrics_ok">歌词：已获取 %1$d 行</string>
+    <string name="fetch_lyrics_none">歌词：未找到</string>
+    <string name="detail_title">歌名</string>
+    <string name="detail_artist">歌手</string>
+    <string name="detail_album">专辑</string>
+    <string name="detail_year">年份</string>
+    <string name="detail_genre">流派</string>
+    <string name="detail_source">来源</string>
+    <string name="detail_cover">封面</string>
+    <string name="detail_duration">时长</string>
+    <string name="detail_format">格式</string>
+    <string name="detail_size">大小</string>
+    <string name="detail_path">路径</string>
+    <string name="got">已获取</string>
+    <string name="not_found">未找到</string>
+    <string name="view_lyrics">查看歌词</string>
+    <string name="close">关闭</string>
+    <string name="copied">已复制</string>
+    <string name="kv_fmt">%1$s：%2$s</string>
+
     <!-- 通知 -->
     <string name="notif_channel_playback">播放服务</string>
     <string name="notif_ready">就绪</string>

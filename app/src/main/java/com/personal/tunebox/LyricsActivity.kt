@@ -26,6 +26,7 @@ class LyricsActivity : AppCompatActivity() {
     private lateinit var scroll: ScrollView
     private lateinit var ivCover: ImageView
     private var currentLine = -1
+    private var timed = false   // 歌词是否有时间轴（纯文本歌词不做高亮滚动）
 
     private val tick = object : Runnable {
         override fun run() {
@@ -33,6 +34,8 @@ class LyricsActivity : AppCompatActivity() {
             val song = e.current ?: return
             val pos = e.position
 
+            // 纯文本歌词（无时间轴）不做高亮滚动
+            if (!timed) return
             // 找当前行：最后一个 timeMs <= pos 的行
             val lines = MediaArtHolder.lyrics
             var idx = -1
@@ -104,10 +107,11 @@ class LyricsActivity : AppCompatActivity() {
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val list = if (lyrics.isEmpty())
             listOf(LyricLine(0, getString(R.string.no_lyrics))) else lyrics
+        timed = lyrics.any { it.timeMs > 0 }
         tvLines = list.map { line ->
             TextView(this).apply {
                 text = line.text
-                setTextColor(0xFF8888A0.toInt())
+                setTextColor(if (timed) 0xFF8888A0.toInt() else 0xFFFFFFFF.toInt())
                 textSize = 16f
                 setPadding(0, 24, 0, 24)
                 setLineSpacing(0f, 1.2f)

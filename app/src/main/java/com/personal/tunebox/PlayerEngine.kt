@@ -38,6 +38,13 @@ class PlayerEngine(private val context: Context) {
     var current: Song? = null
         private set
 
+    /** 联网取到曲目信息后，把队列里那一首换成新对象（界面按 current 显示歌名）。 */
+    fun retitle(song: Song) {
+        val i = queue.indexOfFirst { it.path == song.path }
+        if (i >= 0) queue[i] = song
+        if (current?.path == song.path) current = song
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val queue = ArrayList<Song>()

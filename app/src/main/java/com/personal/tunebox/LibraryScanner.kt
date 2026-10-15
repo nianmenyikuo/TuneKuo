@@ -72,6 +72,17 @@ object LibraryScanner {
             if (root != null && root.exists()) walk(root, seen, out, context)
         }
 
+        // 之前「联网获取」到过的曲目信息，覆盖系统扫出来的旧标签
+        for (i in out.indices) {
+            val m = OnlineMeta.cachedMeta(context, out[i]) ?: continue
+            val s = out[i]
+            out[i] = s.copy(
+                title = m.title.ifBlank { s.title },
+                artist = m.artist.ifBlank { s.artist },
+                album = m.album.ifBlank { s.album }
+            )
+        }
+
         out.sortedBy { it.title.lowercase() }
     }
 

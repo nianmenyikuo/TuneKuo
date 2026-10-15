@@ -13,7 +13,8 @@ import androidx.recyclerview.widget.RecyclerView
  */
 class SongAdapter(
     private val songs: List<Song>,
-    private val onClick: (Song) -> Unit
+    private val onClick: (Song) -> Unit,
+    private val onLongClick: (Song, View) -> Unit
 ) : RecyclerView.Adapter<SongAdapter.VH>() {
 
     var playingPath: String? = null
@@ -53,6 +54,7 @@ class SongAdapter(
             h.itemView.setBackgroundResource(R.drawable.bg_item)
         }
         h.itemView.setOnClickListener { onClick(s) }
+        h.itemView.setOnLongClickListener { onLongClick(s, h.itemView); true }
     }
 
     private fun format(ms: Long): String {

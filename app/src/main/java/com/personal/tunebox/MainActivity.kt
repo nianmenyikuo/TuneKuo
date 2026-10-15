@@ -1,9 +1,13 @@
 package com.personal.tunebox
 
 import android.Manifest
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
@@ -19,6 +23,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -27,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
@@ -134,10 +140,10 @@ class MainActivity : AppCompatActivity() {
 
         val rv = findViewById<RecyclerView>(R.id.rvSongs)
         rv.layoutManager = LinearLayoutManager(this)
-        adapter = SongAdapter(display) { song ->
+        adapter = SongAdapter(display, { song ->
             val pos = songs.indexOfFirst { it.path == song.path }
             if (pos >= 0) playAt(pos)
-        }
+        }, { song, anchor -> showSongMenu(song, anchor) })
         rv.adapter = adapter
 
         // 搜索框：实时过滤 歌名/歌手/专辑
@@ -378,5 +384,121 @@ class MainActivity : AppCompatActivity() {
     private fun format(ms: Long): String {
         val s = ms / 1000
         return "%d:%02d".format(s / 60, s % 60)
+    }
+
+    // ---------------- 长按歌曲：弹出菜单 ----------------
+
+    private fun showSongMenu(song: Song, anchor: View) {
+        val pop = PopupMenu(this, anchor)
+        pop.menu.add(0, 1, 0, getString(R.string.menu_fetch_info))
+        pop.menu.add(0, 2, 1, getString(R.string.menu_detail))
+        pop.menu.add(0, 3, 2, getString(R.string.menu_copy_title))
+        pop.menu.add(0, 4, 3, getString(R.string.menu_copy_path))
+        pop.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> fetchOnline(song)
+                2 -> showDetail(song)
+                3 -> copyText(song.title)
+                else -> copyText(song.path)
+            }
+            true
+        }
+        pop.show()
+    }
+
+    private fun copyText(text: String) {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("TuneKuo", text))
+        Toast.makeText(this, getString(R.string.copied), Toast.LENGTH_SHORT).show()
+    }
+
+    /** 文件信息（本地即可得，不联网）。 */
+    private fun showDetail(song: Song) {
+        val sb = StringBuilder()
+        sb.append(kv(R.string.detail_title, song.title)).append('\n')
+        sb.append(kv(R.string.detail_artist, song.artist)).append('\n')
+        sb.append(kv(R.string.detail_album, song.album)).append('\n')
+        sb.append(kv(R.string.detail_duration, format(song.durationMs))).append('\n')
+        sb.append(kv(R.string.detail_format, File(song.path).extension.uppercase().ifBlank { "?" })).append('\n')
+        sb.append(kv(R.string.detail_size, human(song.sizeBytes))).append('\n')
+        sb.append(kv(R.string.detail_path, song.path))
+        AlertDialog.Builder(this)
+            .setTitle(R.string.menu_detail)
+            .setMessage(sb.toString())
+            .setPositiveButton(R.string.close, null)
+            .show()
+    }
+
+    /** 联网获取元数据/封面/歌词，命中后写缓存并当场生效（正在播放的曲目会立刻换封面与歌词）。 */
+    private fun fetchOnline(song: Song) {
+        Toast.makeText(this, getString(R.string.fetching_online), Toast.LENGTH_SHORT).show()
+        ui.launch {
+            val info = OnlineMeta.fetch(this@MainActivity, song)
+            if (info == null) {
+                Toast.makeText(this@MainActivity, getString(R.string.fetch_failed), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            // 取到的信息直接替换到曲目上：列表那一行和正在播放栏都立刻更新
+            val i = songs.indexOfFirst { it.path == song.path }
+            if (i >= 0) {
+                val old = songs[i]
+                val updated = old.copy(
+                    title = info.title.ifBlank { old.title },
+                    artist = info.artist.ifBlank { old.artist },
+                    album = info.album.ifBlank { old.album }
+                )
+                songs[i] = updated
+                val d = display.indexOfFirst { it.path == song.path }
+                if (d >= 0) display[d] = updated
+                adapter.notifyDataSetChanged()
+                PlaybackService.engine?.retitle(updated)
+            }
+            if (PlaybackService.engine?.current?.path == song.path) {
+                info.cover?.let { f ->
+                    BitmapFactory.decodeFile(f.absolutePath)?.let {
+                        MediaArtHolder.cover = it
+                        ivNowCover.setImageBitmap(it)
+                    }
+                }
+                if (info.lyrics.isNotEmpty()) MediaArtHolder.lyrics = info.lyrics
+            }
+            showInfoDialog(song, info)
+        }
+    }
+
+    private fun showInfoDialog(song: Song, info: OnlineMeta.Info) {
+        val sb = StringBuilder()
+        sb.append(kv(R.string.detail_title, info.title)).append('\n')
+        sb.append(kv(R.string.detail_artist, info.artist)).append('\n')
+        if (info.album.isNotBlank()) sb.append(kv(R.string.detail_album, info.album)).append('\n')
+        if (info.year.isNotBlank()) sb.append(kv(R.string.detail_year, info.year)).append('\n')
+        if (info.genre.isNotBlank()) sb.append(kv(R.string.detail_genre, info.genre)).append('\n')
+        val src = listOf(info.metaSource, info.lyricSource).filter { it.isNotBlank() }.joinToString(" · ")
+        if (src.isNotBlank()) sb.append(kv(R.string.detail_source, src)).append('\n')
+        sb.append(kv(R.string.detail_cover,
+            getString(if (info.cover != null) R.string.got else R.string.not_found))).append('\n')
+        sb.append(if (info.lyrics.isEmpty()) getString(R.string.fetch_lyrics_none)
+                  else getString(R.string.fetch_lyrics_ok, info.lyrics.size))
+
+        val b = AlertDialog.Builder(this)
+            .setTitle(R.string.menu_fetch_info)
+            .setMessage(sb.toString())
+            .setNegativeButton(R.string.close, null)
+        if (info.lyrics.isNotEmpty() && PlaybackService.engine?.current?.path == song.path) {
+            b.setPositiveButton(R.string.view_lyrics) { _, _ ->
+                startActivity(Intent(this, LyricsActivity::class.java))
+            }
+        }
+        b.show()
+    }
+
+    private fun kv(labelRes: Int, value: String) =
+        getString(R.string.kv_fmt, getString(labelRes), value)
+
+    private fun human(bytes: Long): String = when {
+        bytes >= 1073741824L -> "%.2f GB".format(bytes / 1073741824.0)
+        bytes >= 1048576L -> "%.1f MB".format(bytes / 1048576.0)
+        bytes >= 1024L -> "%.0f KB".format(bytes / 1024.0)
+        else -> "$bytes B"
     }
 }

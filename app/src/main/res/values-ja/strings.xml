@@ -33,6 +33,33 @@
     <string name="back">← 戻る</string>
     <string name="version_fmt">TuneKuo %1$s</string>
 
+    <!-- 長押しメニュー -->
+    <string name="menu_fetch_info">オンラインで曲情報を取得（歌詞付き）</string>
+    <string name="menu_detail">曲の詳細</string>
+    <string name="menu_copy_title">曲名をコピー</string>
+    <string name="menu_copy_path">ファイルパスをコピー</string>
+    <string name="fetching_online">オンライン取得中…</string>
+    <string name="fetch_failed">取得できませんでした：情報が見つかりません</string>
+    <string name="fetch_lyrics_ok">歌詞：%1$d 行取得</string>
+    <string name="fetch_lyrics_none">歌詞：見つかりません</string>
+    <string name="detail_title">曲名</string>
+    <string name="detail_artist">アーティスト</string>
+    <string name="detail_album">アルバム</string>
+    <string name="detail_year">年</string>
+    <string name="detail_genre">ジャンル</string>
+    <string name="detail_source">取得元</string>
+    <string name="detail_cover">ジャケット</string>
+    <string name="detail_duration">再生時間</string>
+    <string name="detail_format">形式</string>
+    <string name="detail_size">サイズ</string>
+    <string name="detail_path">パス</string>
+    <string name="got">取得済み</string>
+    <string name="not_found">見つかりません</string>
+    <string name="view_lyrics">歌詞を表示</string>
+    <string name="close">閉じる</string>
+    <string name="copied">コピーしました</string>
+    <string name="kv_fmt">%1$s：%2$s</string>
+
     <!-- 通知 -->
     <string name="notif_channel_playback">再生サービス</string>
     <string name="notif_ready">準備完了</string>

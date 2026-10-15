@@ -33,6 +33,33 @@
     <string name="back">← Back</string>
     <string name="version_fmt">TuneKuo %1$s</string>
 
+    <!-- Long-press song menu -->
+    <string name="menu_fetch_info">Fetch song info online (with lyrics)</string>
+    <string name="menu_detail">Song details</string>
+    <string name="menu_copy_title">Copy title</string>
+    <string name="menu_copy_path">Copy file path</string>
+    <string name="fetching_online">Fetching online…</string>
+    <string name="fetch_failed">Fetch failed: no info found for this song</string>
+    <string name="fetch_lyrics_ok">Lyrics: %1$d lines</string>
+    <string name="fetch_lyrics_none">Lyrics: not found</string>
+    <string name="detail_title">Title</string>
+    <string name="detail_artist">Artist</string>
+    <string name="detail_album">Album</string>
+    <string name="detail_year">Year</string>
+    <string name="detail_genre">Genre</string>
+    <string name="detail_source">Source</string>
+    <string name="detail_cover">Cover</string>
+    <string name="detail_duration">Duration</string>
+    <string name="detail_format">Format</string>
+    <string name="detail_size">Size</string>
+    <string name="detail_path">Path</string>
+    <string name="got">fetched</string>
+    <string name="not_found">not found</string>
+    <string name="view_lyrics">View lyrics</string>
+    <string name="close">Close</string>
+    <string name="copied">Copied</string>
+    <string name="kv_fmt">%1$s: %2$s</string>
+
     <!-- Notification -->
     <string name="notif_channel_playback">Playback service</string>
     <string name="notif_ready">Ready</string>

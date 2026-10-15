@@ -80,6 +80,16 @@ object MediaArt {
             }
         }
 
+        // ---- 联网获取过的封面/歌词（app 私有缓存，本地内容优先） ----
+        if (cover == null) {
+            val f = OnlineMeta.cachedCover(context, song)
+            if (f.exists()) cover = BitmapFactory.decodeFile(f.absolutePath)
+        }
+        if (lyrics.isEmpty()) {
+            val f = OnlineMeta.cachedLyrics(context, song)
+            if (f.exists()) lyrics.addAll(parseLrc(f.readText(Charsets.UTF_8)))
+        }
+
         lyrics.sortBy { it.timeMs }
         Result(cover, lyrics)
     }
