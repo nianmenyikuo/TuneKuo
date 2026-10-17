@@ -66,6 +66,14 @@ jobs:
         # 显式指定输出目录：脚本默认写在 desktop/dist-linux，而 workflow 里的路径
         # （chmod / 运行 / 上传）都是相对仓库根目录算的，跟 deb 那一步保持一致。
         run: bash desktop/linux/make_appimage.sh dist-linux
+      - name: 解包看看自带的那份 libvlc 真在里头
+        run: |
+          ./dist-linux/TuneKuo-*-x86_64.AppImage --appimage-extract 'usr/bin/_internal/vlc/*'
+          ls -l squashfs-root/usr/bin/_internal/vlc/ | head -8
+          test -f squashfs-root/usr/bin/_internal/vlc/libvlc.so.5
+          test -f squashfs-root/usr/bin/_internal/vlc/libvlccore.so.9
+          test -d squashfs-root/usr/bin/_internal/vlc/plugins
+          du -sh squashfs-root/usr/bin/_internal/vlc
       - name: 起一回看看（解包运行，不用 FUSE）
         run: |
           chmod +x dist-linux/*.AppImage
