@@ -37,7 +37,10 @@
     <string name="delete_ok">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="deleted">Deleted</string>
-    <string name="delete_failed">Delete failed (permission denied?)</string>
+    <string name="delete_failed">Delete failed</string>
+    <string name="delete_no_perm">Delete failed: storage permission needed. Allow file access for TuneKuo in system settings.</string>
+    <string name="delete_not_in_library">Delete failed: the system media library doesn\'t know this file — delete it with a file manager.</string>
+    <string name="delete_canceled">Delete canceled</string>
     <string name="fetching_online">Fetching online…</string>
     <string name="fetch_failed">Fetch failed: no info found for this song</string>
     <string name="fetch_lyrics_ok">Lyrics: %1$d lines</string>

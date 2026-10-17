@@ -37,7 +37,10 @@
     <string name="delete_ok">削除</string>
     <string name="cancel">キャンセル</string>
     <string name="deleted">削除しました</string>
-    <string name="delete_failed">削除に失敗しました（権限がない可能性があります）</string>
+    <string name="delete_failed">削除に失敗しました</string>
+    <string name="delete_no_perm">削除できません：ストレージ権限が必要です。システム設定で TuneKuo のファイルアクセスを許可してください。</string>
+    <string name="delete_not_in_library">削除できません：システムのメディアライブラリにないファイルです。ファイルマネージャーで削除してください。</string>
+    <string name="delete_canceled">削除をキャンセルしました</string>
     <string name="fetching_online">オンライン取得中…</string>
     <string name="fetch_failed">取得できませんでした：情報が見つかりません</string>
     <string name="fetch_lyrics_ok">歌詞：%1$d 行取得</string>

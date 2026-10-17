@@ -42,7 +42,10 @@
     <string name="delete_ok">删除</string>
     <string name="cancel">取消</string>
     <string name="deleted">已删除</string>
-    <string name="delete_failed">删除失败（可能没有权限）</string>
+    <string name="delete_failed">删除失败</string>
+    <string name="delete_no_perm">删除失败：需要存储权限，请在系统设置里允许 TuneKuo 访问文件</string>
+    <string name="delete_not_in_library">删除失败：系统媒体库里没有这个文件，请用文件管理器删除</string>
+    <string name="delete_canceled">已取消删除</string>
     <string name="fetching_online">正在联网获取…</string>
     <string name="fetch_failed">联网获取失败：没找到这首歌的信息</string>
     <string name="fetch_lyrics_ok">歌词：已获取 %1$d 行</string>

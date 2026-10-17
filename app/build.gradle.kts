@@ -11,8 +11,8 @@ android {
         applicationId = "com.personal.tunebox"
         minSdk = 24
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.0.5"
+        versionCode = 6
+        versionName = "1.0.6"
         val abis = mutableListOf("armeabi-v7a", "arm64-v8a")
         if (project.hasProperty("emu")) abis.add("x86_64")
         ndk {

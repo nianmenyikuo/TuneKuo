@@ -2,13 +2,16 @@ package com.personal.tunebox
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.RecoverableSecurityException
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Paint
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.provider.MediaStore
 import android.os.Build
@@ -51,8 +54,11 @@ class MainActivity : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { res ->
             val s = pendingDelete
             pendingDelete = null
-            if (s != null && res.resultCode == RESULT_OK) finishDelete(s)
-            else toast(R.string.delete_failed)
+            when {
+                s != null && res.resultCode == RESULT_OK -> finishDelete(s)
+                res.resultCode == RESULT_CANCELED -> toast(R.string.delete_canceled)
+                else -> toast(R.string.delete_failed)
+            }
         }
 
     private lateinit var tvNowTitle: TextView
@@ -341,18 +347,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestPermissionAndScan() {
-        val perm = if (Build.VERSION.SDK_INT >= 33)
-            Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
-        if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(perm), 1)
+        val perms = ArrayList<String>(2)
+        if (!hasRead()) perms.add(readPermission)
+        // Android 10 及以下删文件要写权限（11 起走系统的删除请求，不需要权限）
+        if (Build.VERSION.SDK_INT <= 29 && !hasWrite()) {
+            perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+        if (perms.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, perms.toTypedArray(), 1)
             return
         }
         scan()
     }
 
+    private val readPermission: String
+        get() = if (Build.VERSION.SDK_INT >= 33)
+            Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
+
+    private fun granted(perm: String) =
+        ContextCompat.checkSelfPermission(this, perm) == PackageManager.PERMISSION_GRANTED
+
+    private fun hasRead() = granted(readPermission)
+
+    private fun hasWrite() = Build.VERSION.SDK_INT > 29 || granted(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
     override fun onRequestPermissionsResult(rc: Int, perms: Array<out String>, results: IntArray) {
         super.onRequestPermissionsResult(rc, perms, results)
-        if (rc == 1 && results.firstOrNull() == PackageManager.PERMISSION_GRANTED) scan()
+        if (rc == 1 && hasRead()) scan()
     }
 
     private fun scan() {
@@ -415,23 +436,67 @@ class MainActivity : AppCompatActivity() {
 
     private fun deleteSong(song: Song) {
         val f = File(song.path)
-        if (!f.exists() || runCatching { f.delete() }.getOrDefault(false)) {
+        if (!f.exists()) {
             finishDelete(song)
             return
         }
         if (Build.VERSION.SDK_INT >= 30) {
-            val uri = runCatching {
-                MediaStore.getDocumentUri(this, Uri.fromFile(f))
-                    ?.let { MediaStore.getMediaUri(this, it) }
-            }.getOrNull()
-            if (uri != null) {
-                pendingDelete = song
-                val req = MediaStore.createDeleteRequest(contentResolver, listOf(uri))
-                deleteLauncher.launch(IntentSenderRequest.Builder(req.intentSender).build())
-                return
+            val uri = mediaUri(f)
+            if (uri != null) askSystemToDelete(song, uri) else scanThenDelete(song, f)
+            return
+        }
+        if (hasWrite() && runCatching { f.delete() }.getOrDefault(false)) {
+            finishDelete(song)
+            return
+        }
+        if (Build.VERSION.SDK_INT == 29) {
+            val uri = mediaUri(f)
+            if (uri != null && deleteViaResolver(song, uri)) return
+        }
+        toast(if (hasWrite()) R.string.delete_not_in_library else R.string.delete_no_perm)
+    }
+
+    private fun mediaUri(f: File): Uri? = runCatching {
+        MediaStore.getDocumentUri(this, Uri.fromFile(f))?.let { MediaStore.getMediaUri(this, it) }
+    }.getOrNull()
+
+    private fun askSystemToDelete(song: Song, uri: Uri) {
+        pendingDelete = song
+        val req = MediaStore.createDeleteRequest(contentResolver, listOf(uri))
+        deleteLauncher.launch(IntentSenderRequest.Builder(req.intentSender).build())
+    }
+
+    private fun scanThenDelete(song: Song, f: File) {
+        MediaScannerConnection.scanFile(this, arrayOf(f.absolutePath), null) { _, _ ->
+            val uri = queryMediaUri(f) ?: mediaUri(f)
+            runOnUiThread {
+                if (uri == null) toast(R.string.delete_not_in_library) else askSystemToDelete(song, uri)
             }
         }
-        toast(R.string.delete_failed)
+    }
+
+    private fun queryMediaUri(f: File): Uri? = runCatching {
+        contentResolver.query(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            arrayOf(MediaStore.Audio.Media._ID),
+            MediaStore.Audio.Media.DATA + "=?",
+            arrayOf(f.absolutePath), null
+        )?.use { c ->
+            if (c.moveToFirst()) ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, c.getLong(0))
+            else null
+        }
+    }.getOrNull()
+
+    private fun deleteViaResolver(song: Song, uri: Uri): Boolean = try {
+        contentResolver.delete(uri, null, null)
+        finishDelete(song)
+        true
+    } catch (e: RecoverableSecurityException) {
+        pendingDelete = song
+        deleteLauncher.launch(IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build())
+        true
+    } catch (_: Throwable) {
+        false
     }
 
     private fun finishDelete(song: Song) {
