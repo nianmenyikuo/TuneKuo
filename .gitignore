@@ -20,3 +20,7 @@ local.properties
 # Logs / misc
 *.log
 .DS_Store
+
+# 电脑版打包产物（deb / AppImage / AppDir）
+dist-linux/
+build-appimage/
