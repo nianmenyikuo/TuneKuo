@@ -420,6 +420,18 @@ if "已删除" not in app.lb_status.cget("text"):
     errors.append("删除后状态栏没提示: " + app.lb_status.cget("text"))
 ui_mod.messagebox = real_box
 
+real_os_name = ui_mod.os.name
+probe = os.path.join(tmp, "a b.mp3")
+ui_mod.os.name = "posix"
+posix_cmd = ui_mod._reveal_cmd(probe)
+ui_mod.os.name = real_os_name
+nt_cmd = ui_mod._reveal_cmd(probe)
+print("在文件夹中显示 :", "nt", nt_cmd, "| posix", posix_cmd or "（这台机器上没有 xdg-open/open，正常）")
+if not nt_cmd or nt_cmd[0] != "explorer" or not nt_cmd[1].startswith("/select,"):
+    errors.append(f"Windows 分支的打开命令不对: {nt_cmd}")
+if posix_cmd and (posix_cmd[0] not in ("xdg-open", "open") or posix_cmd[-1] != os.path.dirname(probe)):
+    errors.append(f"Linux 分支的打开命令不对: {posix_cmd}")
+
 app.on_close()
 print("\n界面自检通过" if not errors else f"\n发现问题: {errors}")
 sys.exit(1 if errors else 0)

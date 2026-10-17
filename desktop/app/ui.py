@@ -4,6 +4,8 @@ import io
 import json
 import os
 import queue
+import shutil
+import subprocess
 import threading
 import tkinter as tk
 import webbrowser
@@ -20,6 +22,13 @@ from player import PlayMode, Player, Track, fmt_time
 from version import APP_NAME, FEEDBACK_URL, VERSION
 
 HINTS = {s for s in I18N_TEXT["tool.search_hint"]}
+
+
+def _reveal_cmd(path: str) -> list:
+    if os.name == "nt":
+        return ["explorer", f"/select,{path}"]
+    opener = shutil.which("xdg-open") or shutil.which("open")
+    return [opener, os.path.dirname(path)] if opener else []
 
 try:
     from PIL import Image, ImageTk
@@ -820,9 +829,12 @@ class TuneKuoUI:
         t = self.player.tracks[idx] if 0 <= idx < len(self.player.tracks) else None
         if not t:
             return
+        cmd = _reveal_cmd(t.path)
+        if not cmd:
+            return
         try:
-            os.system(f'explorer /select,"{t.path}"')
-        except Exception:
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
             pass
 
     def delete_track(self, idx: int) -> None:
