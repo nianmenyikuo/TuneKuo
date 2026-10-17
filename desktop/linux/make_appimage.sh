@@ -53,6 +53,7 @@ cp "$ROOT/app/assets/icon.png" "$WORK/$APP/tunekuo.png"
 cp "$ROOT/app/assets/icon.png" "$WORK/$APP/usr/share/icons/hicolor/256x256/apps/tunekuo.png"
 
 cat > "$WORK/$APP/AppRun" <<'EOF'
+#!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"
 VLC="$HERE/usr/bin/_internal/vlc"
 if [ -d "$VLC" ]; then
@@ -63,6 +64,7 @@ fi
 exec "$HERE/usr/bin/TuneKuo" "$@"
 EOF
 chmod +x "$WORK/$APP/AppRun"
+case "$(head -c 2 "$WORK/$APP/AppRun")" in '#!') ;; *) die "AppRun 少了 shebang，装出来的 AppImage 会 Exec format error" ;; esac
 
 echo "== 4/4 appimagetool =="
 mkdir -p "$TOOLS"
