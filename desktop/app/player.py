@@ -90,9 +90,11 @@ class Player:
 
     def _on_length(self, event):
         try:
-            ms = int(event.u)
+            ms = int(event.u.new_length)
         except Exception:
             ms = 0
+        if ms <= 0:
+            ms = self.get_length()
         if self.index >= 0 and 0 <= self.index < len(self.tracks) and ms > 0:
             self.tracks[self.index].duration = ms
         self._fire("length", ms)
