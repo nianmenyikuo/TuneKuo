@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.graphics.Paint
 import android.net.Uri
+import android.provider.MediaStore
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -22,6 +23,8 @@ import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.app.ActivityCompat
@@ -41,6 +44,16 @@ class MainActivity : AppCompatActivity() {
     private val display = ArrayList<Song>()
     private val handler = Handler(Looper.getMainLooper())
     private val ui = CoroutineScope(Dispatchers.Main)
+
+    private var pendingDelete: Song? = null
+
+    private val deleteLauncher =
+        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { res ->
+            val s = pendingDelete
+            pendingDelete = null
+            if (s != null && res.resultCode == RESULT_OK) finishDelete(s)
+            else toast(R.string.delete_failed)
+        }
 
     private lateinit var tvNowTitle: TextView
     private lateinit var tvNowInfo: TextView
@@ -375,16 +388,68 @@ class MainActivity : AppCompatActivity() {
         pop.menu.add(0, 2, 1, getString(R.string.menu_detail))
         pop.menu.add(0, 3, 2, getString(R.string.menu_copy_title))
         pop.menu.add(0, 4, 3, getString(R.string.menu_copy_path))
+        pop.menu.add(0, 5, 4, getString(R.string.menu_delete))
         pop.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> fetchOnline(song)
                 2 -> showDetail(song)
                 3 -> copyText(song.title)
-                else -> copyText(song.path)
+                4 -> copyText(song.path)
+                else -> confirmDelete(song)
             }
             true
         }
         pop.show()
+    }
+
+    private fun toast(res: Int) = Toast.makeText(this, getString(res), Toast.LENGTH_SHORT).show()
+
+    private fun confirmDelete(song: Song) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.menu_delete)
+            .setMessage(getString(R.string.delete_confirm, song.title))
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.delete_ok) { _, _ -> deleteSong(song) }
+            .show()
+    }
+
+    private fun deleteSong(song: Song) {
+        val f = File(song.path)
+        if (!f.exists() || runCatching { f.delete() }.getOrDefault(false)) {
+            finishDelete(song)
+            return
+        }
+        if (Build.VERSION.SDK_INT >= 30) {
+            val uri = runCatching {
+                MediaStore.getDocumentUri(this, Uri.fromFile(f))
+                    ?.let { MediaStore.getMediaUri(this, it) }
+            }.getOrNull()
+            if (uri != null) {
+                pendingDelete = song
+                val req = MediaStore.createDeleteRequest(contentResolver, listOf(uri))
+                deleteLauncher.launch(IntentSenderRequest.Builder(req.intentSender).build())
+                return
+            }
+        }
+        toast(R.string.delete_failed)
+    }
+
+    private fun finishDelete(song: Song) {
+        val wasCurrent = PlaybackService.engine?.current?.path == song.path
+        if (wasCurrent) PlaybackService.engine?.forget(song.path)
+        songs.removeAll { it.path == song.path }
+        applyFilter()
+        if (wasCurrent) {
+            loadedFor = null
+            tvNowTitle.text = getString(R.string.not_playing)
+            tvNowInfo.text = ""
+            seekBar.progress = 0
+            btnPlay.setImageResource(R.drawable.ic_play)
+            ivNowCover.setImageResource(R.drawable.ic_default_cover)
+            MediaArtHolder.cover = null
+            MediaArtHolder.lyrics = emptyList()
+        }
+        toast(R.string.deleted)
     }
 
     private fun copyText(text: String) {

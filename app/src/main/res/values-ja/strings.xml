@@ -32,6 +32,12 @@
     <string name="menu_detail">曲の詳細</string>
     <string name="menu_copy_title">曲名をコピー</string>
     <string name="menu_copy_path">ファイルパスをコピー</string>
+    <string name="menu_delete">ファイルを削除</string>
+    <string name="delete_confirm">「%1$s」を端末から削除しますか？元に戻せません。</string>
+    <string name="delete_ok">削除</string>
+    <string name="cancel">キャンセル</string>
+    <string name="deleted">削除しました</string>
+    <string name="delete_failed">削除に失敗しました（権限がない可能性があります）</string>
     <string name="fetching_online">オンライン取得中…</string>
     <string name="fetch_failed">取得できませんでした：情報が見つかりません</string>
     <string name="fetch_lyrics_ok">歌詞：%1$d 行取得</string>

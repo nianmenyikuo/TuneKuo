@@ -37,6 +37,12 @@
     <string name="menu_detail">歌曲详情</string>
     <string name="menu_copy_title">复制歌名</string>
     <string name="menu_copy_path">复制文件路径</string>
+    <string name="menu_delete">删除本地文件</string>
+    <string name="delete_confirm">确定删除「%1$s」？会从设备上真正删掉这个文件，无法撤销。</string>
+    <string name="delete_ok">删除</string>
+    <string name="cancel">取消</string>
+    <string name="deleted">已删除</string>
+    <string name="delete_failed">删除失败（可能没有权限）</string>
     <string name="fetching_online">正在联网获取…</string>
     <string name="fetch_failed">联网获取失败：没找到这首歌的信息</string>
     <string name="fetch_lyrics_ok">歌词：已获取 %1$d 行</string>

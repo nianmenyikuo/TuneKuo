@@ -66,9 +66,9 @@ pip install -r requirements.txt         # python-vlc + Pillow（打包时才需�
 **方式四：Linux 现成包（Release 附件）**
 
 ```bash
-sudo dpkg -i TuneKuo-1.0.4-all.deb        # 源码包：依赖系统 python3-tk / python3-vlc / vlc-plugin-base
-chmod +x TuneKuo-1.0.4-x86_64.AppImage    # 免安装：自带 libvlc 与插件，双击就跑
-./TuneKuo-1.0.4-x86_64.AppImage
+sudo dpkg -i TuneKuo-1.0.5-all.deb        # 源码包：依赖系统 python3-tk / python3-vlc / vlc-plugin-base
+chmod +x TuneKuo-1.0.5-x86_64.AppImage    # 免安装：自带 libvlc 与插件，双击就跑
+./TuneKuo-1.0.5-x86_64.AppImage
 ```
 
 deb 里装的是 Python 源码（`/usr/share/tunekuo/*.py`）加上启动器 `/usr/bin/tunekuo`，只有 ~285 KB；

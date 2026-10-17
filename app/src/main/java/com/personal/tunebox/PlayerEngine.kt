@@ -36,6 +36,19 @@ class PlayerEngine(private val context: Context) {
         if (current?.path == song.path) current = song
     }
 
+    fun forget(path: String) {
+        val wasCurrent = current?.path == path
+        queue.removeAll { it.path == path }
+        if (wasCurrent) {
+            player.stop()
+            current = null
+            index = -1
+        } else if (index >= queue.size) {
+            index = queue.size - 1
+        }
+        rebuildShuffle()
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val queue = ArrayList<Song>()

@@ -32,6 +32,12 @@
     <string name="menu_detail">Song details</string>
     <string name="menu_copy_title">Copy title</string>
     <string name="menu_copy_path">Copy file path</string>
+    <string name="menu_delete">Delete file</string>
+    <string name="delete_confirm">Delete "%1$s" from this device? This cannot be undone.</string>
+    <string name="delete_ok">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="deleted">Deleted</string>
+    <string name="delete_failed">Delete failed (permission denied?)</string>
     <string name="fetching_online">Fetching online…</string>
     <string name="fetch_failed">Fetch failed: no info found for this song</string>
     <string name="fetch_lyrics_ok">Lyrics: %1$d lines</string>

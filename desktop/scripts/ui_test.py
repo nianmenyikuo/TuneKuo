@@ -97,7 +97,7 @@ m = app._row_menu(0)
 labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1) if m.type(i) == "command"]
 print("右键菜单    :", labels)
 for want in ("播放", "联网获取歌曲信息（含歌词）", "歌曲详情", "复制歌名", "复制文件路径",
-             "在文件夹中显示", "从列表移除"):
+             "在文件夹中显示", "从列表移除", "删除文件"):
     if want not in labels:
         errors.append(f"右键菜单缺了「{want}」")
 m.destroy()
@@ -118,6 +118,14 @@ class _FakeBox:
 
     def __init__(self) -> None:
         self.calls = []
+        self.answer = True
+
+    def askyesno(self, title, msg, **kw) -> bool:
+        self.calls.append(("ask", title, msg))
+        return self.answer
+
+    def showerror(self, title, msg, **kw) -> None:
+        self.calls.append(("error", title, msg))
 
     def showinfo(self, title, msg, **kw) -> None:
         self.calls.append(("info", title, msg))
@@ -372,9 +380,45 @@ if st2.get("lang") != "ja":
 
 app.set_lang("zh")
 pump(0.3)
-print("最后切回 zh :", repr(app.btn_settings.cget("text")))
+print("最后切回 zh :", repr(app.btn_settings.cget("text")), "| 列表",
+      len(app.tree.get_children()), "| 模型", len(app.player.tracks))
 if app.btn_settings.cget("text") != "设置":
     errors.append("最后切回中文失败")
+if len(app.tree.get_children()) != len(app.player.tracks):
+    errors.append("切语言后列表被搜索框占位符过滤空了: 树 "
+                  f"{len(app.tree.get_children())} / 模型 {len(app.player.tracks)}")
+
+extra = os.path.join(tmp, "待删除.wav")
+make_wav(extra, seconds=0.5)
+app.add_paths([extra])
+pump(0.8)
+n_before = len(app.tree.get_children())
+m_before = len(app.player.tracks)
+print("删除前      : 树", n_before, "| 模型", m_before, "| 查询", repr(app._query()))
+idx = next(i for i, tr in enumerate(app.player.tracks) if tr.path == extra)
+box = _FakeBox()
+ui_mod.messagebox = box
+box.answer = False
+app.delete_track(idx)
+pump(0.2)
+print("取消删除    :", "文件还在" if os.path.exists(extra) else "文件没了",
+      "| 树", len(app.tree.get_children()), "| 模型", len(app.player.tracks))
+if not os.path.exists(extra) or len(app.player.tracks) != m_before:
+    errors.append("确认框选了“否”却还是删了")
+box.answer = True
+app.delete_track(idx)
+pump(0.3)
+print("确认删除    :", "文件还在" if os.path.exists(extra) else "文件没了",
+      "| 树", len(app.tree.get_children()), "| 模型", len(app.player.tracks),
+      "| 状态", repr(app.lb_status.cget("text")))
+if os.path.exists(extra):
+    errors.append("确认删除后文件还在")
+if len(app.player.tracks) != m_before - 1 or len(app.tree.get_children()) != n_before - 1:
+    errors.append(f"删除后列表没少一行: 树 {len(app.tree.get_children())}/{n_before - 1} "
+                  f"模型 {len(app.player.tracks)}/{m_before - 1}")
+if "已删除" not in app.lb_status.cget("text"):
+    errors.append("删除后状态栏没提示: " + app.lb_status.cget("text"))
+ui_mod.messagebox = real_box
 
 app.on_close()
 print("\n界面自检通过" if not errors else f"\n发现问题: {errors}")

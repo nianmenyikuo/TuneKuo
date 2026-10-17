@@ -13,11 +13,13 @@ from typing import List, Optional
 import assoc
 import online
 import paths
-from i18n import LANGS, current_language, set_language, t as tr
+from i18n import LANGS, TEXT as I18N_TEXT, current_language, set_language, t as tr
 from library import MetaLoader, default_roots, scan_paths
 from metadata import parse_lrc
 from player import PlayMode, Player, Track, fmt_time
 from version import APP_NAME, FEEDBACK_URL, VERSION
+
+HINTS = {s for s in I18N_TEXT["tool.search_hint"]}
 
 try:
     from PIL import Image, ImageTk
@@ -552,22 +554,22 @@ class TuneKuoUI:
                 pass
 
     def _query(self) -> str:
-        raw = self.var_search.get()
-        if self._placeholder and raw == tr("tool.search_hint"):
+        raw = self.var_search.get().strip()
+        if raw in HINTS:
             return ""
-        return raw.strip().lower()
+        return raw.lower()
 
     def _update_placeholder(self) -> None:
         hint = tr("tool.search_hint")
-        if self._placeholder and self.var_search.get() != hint:
-            self._placeholder = False
-        if self._placeholder:
+        if self._placeholder or self.var_search.get() in HINTS:
             self.var_search.set("")
+            self._placeholder = True
         if not self.var_search.get():
             self._placeholder = True
             self.var_search.set(hint)
             self.search_entry.config(fg=FG_DIM)
         else:
+            self._placeholder = False
             self.search_entry.config(fg=FG)
 
     def _search_focus_in(self, event=None) -> None:
@@ -715,6 +717,7 @@ class TuneKuoUI:
         m.add_separator()
         m.add_command(label=tr("menu.reveal"), command=lambda: self.reveal(idx))
         m.add_command(label=tr("menu.remove"), command=lambda: self.remove_track(idx))
+        m.add_command(label=tr("menu.delete_file"), command=lambda: self.delete_track(idx))
         return m
 
     def _track_at(self, idx: int) -> Optional[Track]:
@@ -821,6 +824,20 @@ class TuneKuoUI:
             os.system(f'explorer /select,"{t.path}"')
         except Exception:
             pass
+
+    def delete_track(self, idx: int) -> None:
+        t = self._track_at(idx)
+        if t is None:
+            return
+        if not messagebox.askyesno(tr("menu.delete_file"), tr("delete_confirm", name=t.display_title)):
+            return
+        try:
+            os.remove(t.path)
+        except OSError as exc:
+            messagebox.showerror(tr("menu.delete_file"), tr("delete_failed", err=exc))
+            return
+        self.remove_track(idx)
+        self.set_status(tr("deleted", name=t.display_title))
 
     def remove_track(self, idx: int) -> None:
         if not (0 <= idx < len(self.player.tracks)):
