@@ -1,4 +1,3 @@
-"""TuneKuo: 音乐库扫描 + 后台元数据（标签/封面/歌词/时长）加载。"""
 from __future__ import annotations
 
 import os
@@ -7,13 +6,9 @@ import threading
 import time
 from typing import Callable, List, Optional
 
-import vlcenv  # noqa: F401
+import vlcenv
 import vlc
 
-# python-vlc 3.x 的 MediaParseFlag 是 ctypes.c_uint 的子类，用 `|` 组合会抛
-# TypeError: unsupported operand type(s) for |: 'MediaParseFlag' and 'MediaParseFlag'。
-# 老代码把这个异常 except 掉了，于是 parse_with_options 从来没真正执行过 → 列表时长全 --:--。
-# local(0x0) | fetch_local(0x2) = 0x2
 PARSE_FLAG = vlc.MediaParseFlag(
     vlc.MediaParseFlag.local.value | vlc.MediaParseFlag.fetch_local.value)
 
@@ -25,13 +20,10 @@ SKIP_DIRS = {"$recycle.bin", "system volume information", "windows", "program fi
              "program files (x86)", "programdata", "appdata", "node_modules", ".git",
              "temp", "tmp", "cache", "$windows.~bt", "$windows.~ws"}
 
-
 def is_audio(path: str) -> bool:
     return os.path.splitext(path)[1].lower() in AUDIO_EXTS
 
-
 def scan_paths(paths, recursive: bool = True) -> List[str]:
-    """把文件/文件夹/播放列表展开成音频文件路径（保序去重）。"""
     out: List[str] = []
     seen = set()
 
@@ -70,7 +62,6 @@ def scan_paths(paths, recursive: bool = True) -> List[str]:
             walk_dir(p)
     return out
 
-
 def default_roots() -> List[str]:
     home = os.path.expanduser("~")
     cands = [
@@ -85,13 +76,7 @@ def default_roots() -> List[str]:
             out.append(c)
     return out
 
-
 def _wait_parsed(media, timeout: float = 6.0) -> None:
-    """等 libvlc 把媒体解析完。
-
-    libvlc 的解析是异步的：调完 parse() 立刻 get_duration() 只会拿到 0。
-    必须等 MediaParsedChanged 事件（或 is_parsed() 变真），否则列表里的时长全是 --:--。
-    """
     try:
         if int(media.get_duration() or 0) > 0:
             return
@@ -116,9 +101,7 @@ def _wait_parsed(media, timeout: float = 6.0) -> None:
             return
         time.sleep(0.02)
 
-
 class MetaLoader:
-    """单后台线程，按提交顺序读取元数据；结果通过回调送回（回调需自行转 UI 线程）。"""
 
     def __init__(self, on_loaded: Callable[[int, Track], None]):
         self.on_loaded = on_loaded
@@ -138,7 +121,6 @@ class MetaLoader:
         self.q.put((gen, index, track))
 
     def cancel_pending(self) -> None:
-        """丢弃队列里尚未处理的任务。"""
         try:
             while True:
                 self.q.get_nowait()
@@ -185,33 +167,25 @@ class MetaLoader:
         if tags.get("lyrics"):
             track.lyrics = tags["lyrics"]
             track.has_lrc = bool(tags.get("has_lrc"))
-        # 标签和旁边的 .lrc 都没有时，才用「联网获取」缓存下来的歌词/封面
         if not track.lyrics:
             track.lyrics = online.cached_lyrics(track.path)
         if not track.cover:
             track.cover = online.cached_cover(track.path)
-        # 之前联网取到过的曲目信息（歌名/歌手/专辑）也一并生效
         meta = online.cached_meta(track.path)
         if meta:
             track.title = meta["title"] or track.title
             track.artist = meta["artist"] or track.artist
             track.album = meta["album"] or track.album
-        # 只有标签里没拿到时长/标题/歌手时才花时间问 libvlc（DSD、TAK 等自研解析覆盖不到的格式也靠它）
         if track.duration <= 0 or not track.title or not track.artist:
             self._load_from_vlc(track)
         track.loaded = True
 
     def _instance(self):
-        """整个 MetaLoader 共用一个 libvlc 实例。
-
-        注意：不能在循环里 release() —— 实例被释放后 self._vlc_instance 还指着它，
-        后续文件的解析会失败，表现就是"只有第一首有时长，其余全是 --:--"。
-        """
         if self._vlc_instance is None:
             try:
                 self._vlc_instance = vlc.Instance("--no-video", "--quiet")
             except Exception:
-                self._vlc_instance = False  # 标记不可用，避免反复尝试
+                self._vlc_instance = False
         return self._vlc_instance or None
 
     def _load_from_vlc(self, track: Track) -> None:

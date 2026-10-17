@@ -1,5 +1,4 @@
 ﻿# 开发模式启动（需要本机有 Python 3.10+ / tkinter / python-vlc / Pillow）
-# 用法: pwsh -File run.ps1  [音乐文件或文件夹...]
 param([Parameter(ValueFromRemainingArguments = $true)]$Files)
 
 $ErrorActionPreference = 'Stop'

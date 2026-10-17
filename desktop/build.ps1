@@ -1,8 +1,7 @@
 ﻿# 打包 TuneKuo for Windows -> dist\TuneKuo\
-# 用法: pwsh -File build.ps1   [-NoVlc] [-NoInstall]
 param(
-  [switch]$NoVlc,      # 不复制 vlc\ 目录（本机已装 64 位 VLC 时可省体积）
-  [switch]$NoInstall   # 不执行 pip install
+  [switch]$NoVlc,
+  [switch]$NoInstall
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,7 +50,6 @@ Write-Host "PyInstaller 打包 ..." -ForegroundColor Cyan
   (Join-Path $root 'app\main.py')
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller 失败" }
 
-# 播放引擎随包携带（第一次打包前先运行 scripts\fetch_vlc.ps1）
 $vlcSrc = Join-Path $root 'vendor\vlc64'
 $vlcDst = Join-Path $root 'dist\TuneKuo\vlc'
 if ($NoVlc) {
@@ -66,7 +64,6 @@ if ($NoVlc) {
   if (Test-Path (Join-Path $vlcSrc 'libvlc.dll')) { Copy-Item $vlcSrc $vlcDst -Recurse -Force }
 }
 
-# 说明书随包附带（仓库里叫 README.md，本地开发目录可能叫 README-Windows.md）
 foreach ($docName in @('README.md', 'README-Windows.md')) {
   $docPath = Join-Path $root $docName
   if (Test-Path $docPath) {

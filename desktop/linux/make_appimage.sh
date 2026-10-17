@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
-# 打 AppImage（只能在 Linux 上跑）：
-#     desktop/linux/make_appimage.sh [输出目录，默认 desktop/dist-linux]
-#
-# 和 deb 的区别：AppImage 把 libvlc 与插件一起装进包里，对方不装 VLC 也能放。
-# 步骤：linux/build.sh 出 onedir → 塞进系统 libvlc + 插件 → 摆 AppDir → appimagetool
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"     # desktop/
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="${1:-$ROOT/dist-linux}"
 WORK="$ROOT/build-appimage"
 TOOLS="$OUT/tools"
@@ -40,15 +35,11 @@ mkdir -p "$WORK/$APP/usr/bin" "$WORK/$APP/usr/share/applications" \
          "$WORK/$APP/usr/share/icons/hicolor/256x256/apps"
 cp -a "$ROOT/dist/$APP/." "$WORK/$APP/usr/bin/"
 
-VLCDIR="$WORK/$APP/usr/bin/_internal/vlc"          # vlcenv.posix_setup() 认这个位置
+VLCDIR="$WORK/$APP/usr/bin/_internal/vlc"
 mkdir -p "$VLCDIR"
-# -L：把符号链接解成真文件。libvlc.so.5 / libvlccore.so.9 在系统里都是符号链接，
-# 打成 AppImage 后解包时出现过「could not create symlink」，索性不留链接，直接拷实体（才 1MB 出头）。
 cp -aL "$LIBVLC"/libvlc.so* "$LIBVLC"/libvlccore.so* "$VLCDIR"/ 2>/dev/null || true
 cp -aL "$PLUGINS" "$VLCDIR/plugins"
 
-# 拷进来的必须是真文件（少了 libvlc 在装了 VLC 的机器上照样能跑，用户机器上却起不来，
-# 所以在打包前就把这件事钉死）
 [ -d "$VLCDIR/plugins" ] || die "VLC 插件目录没拷进去"
 [ -f "$VLCDIR/libvlc.so.5" ] || die "libvlc.so.5 不是真文件（没拷进来？）"
 [ -f "$VLCDIR/libvlccore.so.9" ] || die "libvlccore.so.9 不是真文件（没拷进来？）"
@@ -62,7 +53,6 @@ cp "$ROOT/app/assets/icon.png" "$WORK/$APP/tunekuo.png"
 cp "$ROOT/app/assets/icon.png" "$WORK/$APP/usr/share/icons/hicolor/256x256/apps/tunekuo.png"
 
 cat > "$WORK/$APP/AppRun" <<'EOF'
-#!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"
 VLC="$HERE/usr/bin/_internal/vlc"
 if [ -d "$VLC" ]; then

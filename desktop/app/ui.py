@@ -1,4 +1,3 @@
-"""TuneKuo: 主界面（tkinter 深色主题）。"""
 from __future__ import annotations
 
 import io
@@ -24,10 +23,9 @@ try:
     from PIL import Image, ImageTk
 
     HAS_PIL = True
-except Exception:  # 没装 Pillow 时退化为只显示 PNG 封面
+except Exception:
     HAS_PIL = False
 
-# ------------------------------------------------------------------ 配色
 BG = "#12121A"
 PANEL = "#1B1B26"
 CARD = "#23232F"
@@ -42,8 +40,6 @@ GREEN = "#4ECB71"
 UI_FONT = "Microsoft YaHei UI"
 ICON_FONT = "Segoe MDL2 Assets"
 
-# 图标字形：Windows 用 Segoe MDL2 的私有区码；其它平台没有这套字体，用普通符号代替
-# （_pick_fonts() 会在 Linux 上把字体换成系统里真有的那一个）
 if os.name == "nt":
     GLYPH_PLAY = "\uE768"
     GLYPH_PAUSE = "\uE769"
@@ -63,17 +59,13 @@ else:
     GLYPH_MUSIC = "♪"
     GLYPH_SEARCH = ""
 
-
 def state_dir() -> str:
     return paths.config_dir()
-
 
 STATE_FILE = os.path.join(state_dir(), "state.json")
 MAX_STATE_TRACKS = 3000
 
-
 def human_size(n: int) -> str:
-    """文件大小的可读写法。"""
     if not n or n <= 0:
         return "-"
     size = float(n)
@@ -83,13 +75,10 @@ def human_size(n: int) -> str:
         size /= 1024.0
     return "-"
 
-
 def assets_dir() -> str:
     return paths.assets_dir()
 
-
 def _pick_fonts() -> None:
-    """挑本机真有的界面字体（Linux 上既没有微软雅黑，也没有 Segoe MDL2）。"""
     global UI_FONT, ICON_FONT
     if os.name == "nt":
         return
@@ -109,14 +98,13 @@ def _pick_fonts() -> None:
             ICON_FONT = name
             break
 
-
 class TuneKuoUI:
     def __init__(self, root: tk.Tk, initial_paths: Optional[List[str]] = None):
         self.root = root
         self.evq: "queue.Queue" = queue.Queue()
-        self.view: List[int] = []          # 当前显示的行 -> 曲库索引
-        self.lrc_lines = []                # [(time_ms, text)]
-        self.lrc_line_no: List[int] = []   # 文本行号 -> 歌词下标
+        self.view: List[int] = []
+        self.lrc_lines = []
+        self.lrc_line_no: List[int] = []
         self.seeking = False
         self.current_lyric = -1
         self._cover_photo = None
@@ -150,7 +138,6 @@ class TuneKuoUI:
         if paths:
             self.add_paths(paths, autoplay=True)
 
-    # ------------------------------------------------------------ 样式
     def _build_style(self) -> None:
         style = ttk.Style()
         try:
@@ -181,7 +168,6 @@ class TuneKuoUI:
             b.config(width=width)
         return b
 
-    # ------------------------------------------------------------ 布局
     def _build_ui(self) -> None:
         r = self.root
         r.configure(bg=BG)
@@ -198,7 +184,6 @@ class TuneKuoUI:
             except Exception:
                 pass
 
-        # 两个页面叠在同一个窗口里，用 place 的 x 坐标左右滑动切换（0=主界面，1=设置页）
         self.offset = 0.0
         self._anim = None
         self._dragging = False
@@ -214,7 +199,6 @@ class TuneKuoUI:
         main.grid_rowconfigure(1, weight=1)
         main.grid_columnconfigure(0, weight=1)
 
-        # ---- 顶部工具栏
         top = tk.Frame(main, bg=BG)
         top.grid(row=0, column=0, sticky="ew", padx=14, pady=(12, 6))
         tk.Label(top, text="TuneKuo", bg=BG, fg=FG, font=(UI_FONT, 16, "bold")).pack(side="left")
@@ -249,7 +233,6 @@ class TuneKuoUI:
             tk.Label(right_box, text=GLYPH_SEARCH, bg=BG, fg=FG_DIM,
                      font=(ICON_FONT, 12)).pack(side="right", padx=(0, 6))
 
-        # ---- 主体：左列表 + 右封面/歌词
         body = tk.Frame(main, bg=BG)
         body.grid(row=1, column=0, sticky="nsew", padx=14)
         body.grid_rowconfigure(0, weight=1)
@@ -304,7 +287,6 @@ class TuneKuoUI:
         lsb.grid(row=3, column=1, sticky="ns")
         self.lyric_text.configure(yscrollcommand=lsb.set)
 
-        # ---- 底部播放条
         bottom = tk.Frame(main, bg=PANEL)
         bottom.grid(row=2, column=0, sticky="ew", padx=14, pady=(8, 12))
         bottom.grid_columnconfigure(1, weight=1)
@@ -346,7 +328,6 @@ class TuneKuoUI:
         self.vol.set(80)
         self.vol.pack(side="left", padx=(4, 0))
 
-        # 快捷键
         r.bind("<space>", self._on_space)
         r.bind("<Control-o>", lambda e: self.choose_files())
         r.bind("<Control-f>", lambda e: self.search_entry.focus_set())
@@ -356,16 +337,14 @@ class TuneKuoUI:
         r.bind("<Control-l>", lambda e: self.focus_lyrics())
         r.bind("<Configure>", self._on_configure, add="+")
 
-        # ---- 设置页（同一窗口内，向右滑入）
         self._build_settings_page()
         self._apply_slide()
-        self.root.after(50, self._apply_slide)   # 窗口还没映射时 winfo_width() 是 1，映射后再摆一次
+        self.root.after(50, self._apply_slide)
         self._retranslate()
         self.root.bind_all("<ButtonPress-1>", self._drag_press, add="+")
         self.root.bind_all("<B1-Motion>", self._drag_motion, add="+")
         self.root.bind_all("<ButtonRelease-1>", self._drag_release, add="+")
 
-    # ------------------------------------------------------------ 设置页
     def _build_settings_page(self) -> None:
         page = self.page_settings
         page.grid_rowconfigure(1, weight=1)
@@ -405,7 +384,6 @@ class TuneKuoUI:
         self._apply_lang_highlight()
 
     def _apply_lang_highlight(self) -> None:
-        """当前语言用高亮底色 + 强调色 + 圆点标出来。"""
         cur = current_language()
         mark = tr("settings.mark")
         names = dict(LANGS)
@@ -417,18 +395,16 @@ class TuneKuoUI:
                 lb.config(text=names[code], bg=PANEL, fg=FG, font=(UI_FONT, 12))
 
     def set_lang(self, code: str) -> None:
-        set_language(code)          # 同时写回 state.json 的 lang 字段
+        set_language(code)
         self._retranslate()
 
     def open_feedback(self) -> None:
         try:
             webbrowser.open(FEEDBACK_URL)
         except Exception:
-            pass                    # 打不开就算了，不弹错误框
+            pass
 
-    # ------------------------------------------------------------ 语言热切换
     def _retranslate(self) -> None:
-        """把所有界面文字按当前语言重刷一遍；播放与列表状态不受影响。"""
         self.btn_add_files.config(text=tr("tool.add_files"))
         self.btn_add_folder.config(text=tr("tool.add_folder"))
         self.btn_scan.config(text=tr("tool.scan_library"))
@@ -466,7 +442,6 @@ class TuneKuoUI:
         self.lyric_text.insert("end", text, tag)
         self.lyric_text.configure(state="disabled")
 
-    # ------------------------------------------------------------ 页面切换
     def is_settings(self) -> bool:
         return self.offset > 0.5
 
@@ -502,14 +477,12 @@ class TuneKuoUI:
         self.page_settings.place_configure(x=w - off)
 
     def _on_configure(self, event=None) -> None:
-        # 窗口尺寸变了要重新摆位；拖动/动画过程中不打断
         if event is not None and getattr(event, "widget", self.root) is not self.root:
             return
         if self._dragging or self._anim is not None:
             return
         self._apply_slide()
 
-    # 按住鼠标左右拖动切页（输入框/歌词框/滑杆/按钮上的拖动留给控件自己）
     _NO_DRAG = ("Entry", "Text", "Scale", "Scrollbar", "TScrollbar",
                 "TScale", "Button", "TButton")
 
@@ -547,9 +520,7 @@ class TuneKuoUI:
         self._dragging = False
         self._animate(1.0 if self.offset > 0.5 else 0.0)
 
-    # ------------------------------------------------------------ 小工具
     def _tip(self, widget, key: str) -> None:
-        """悬停提示；文字在悬停时才取，所以切语言后自动跟着变。"""
         def show(_e=None):
             self._tip_hide()
             try:
@@ -589,7 +560,7 @@ class TuneKuoUI:
     def _update_placeholder(self) -> None:
         hint = tr("tool.search_hint")
         if self._placeholder and self.var_search.get() != hint:
-            self._placeholder = False         # 换语言时旧提示文字要丢掉
+            self._placeholder = False
         if self._placeholder:
             self.var_search.set("")
         if not self.var_search.get():
@@ -611,7 +582,6 @@ class TuneKuoUI:
             self.var_search.set(tr("tool.search_hint"))
             self.search_entry.config(fg=FG_DIM)
 
-    # 空格/方向键在输入框里要正常打字，不能被快捷键抢走
     def _typing(self) -> bool:
         try:
             w = self.root.focus_get()
@@ -631,7 +601,6 @@ class TuneKuoUI:
         self.player.seek(self.player.get_time() + delta)
         return "break"
 
-    # ------------------------------------------------------------ 事件桥
     def _vlc_event(self, kind: str, payload) -> None:
         self.evq.put(("vlc", kind, payload))
 
@@ -639,7 +608,6 @@ class TuneKuoUI:
         self.evq.put(("meta", gen, track))
 
     def set_status(self, text: str = "", key: Optional[str] = None, **kw) -> None:
-        """状态栏文字；传 key=（i18n 键）时切换语言会自动跟着变。"""
         if key is not None:
             self._status_key = (key, dict(kw))
             text = tr(key, **kw)
@@ -655,7 +623,6 @@ class TuneKuoUI:
         except Exception:
             pass
 
-    # ------------------------------------------------------------ 列表
     def add_paths(self, paths: List[str], autoplay: bool = True) -> None:
         files = scan_paths(paths)
         if not files:
@@ -775,7 +742,6 @@ class TuneKuoUI:
         return tr("kv_fmt", k=tr(key), v=value)
 
     def show_song_detail(self, idx: int) -> None:
-        """文件本身的信息，不联网。"""
         t = self._track_at(idx)
         if not t:
             return
@@ -796,7 +762,6 @@ class TuneKuoUI:
         messagebox.showinfo(tr("menu.detail"), body)
 
     def fetch_online(self, idx: int) -> None:
-        """联网取元数据/封面/歌词：结果写缓存并当场生效（正在播放的立刻换封面与歌词）。"""
         t = self._track_at(idx)
         if not t:
             return
@@ -807,7 +772,7 @@ class TuneKuoUI:
                 info = online.fetch(t)
             except Exception:
                 info = None
-            self.evq.put(("online", idx, info))     # 回主线程再动界面
+            self.evq.put(("online", idx, info))     
 
         threading.Thread(target=work, daemon=True).start()
 
@@ -819,7 +784,6 @@ class TuneKuoUI:
             self.set_status(key="fetch_failed")
             messagebox.showwarning(tr("menu.fetch_info"), tr("fetch_failed"))
             return
-        # 取到的信息直接替换到曲目上（列表和正在播放栏立刻更新），歌词/封面同时生效
         t.title = info.title or t.title
         t.artist = info.artist or t.artist
         t.album = info.album or t.album
@@ -831,7 +795,7 @@ class TuneKuoUI:
             self.tree.item(str(idx), values=(t.display_title, self._artist(t), t.album,
                                              fmt_time(t.duration)))
         if idx == self.player.index:
-            self._show_track(t)                      # 正在播的那首立刻换封面/歌词
+            self._show_track(t)
         n = len(parse_lrc(info.lyrics)) or len([l for l in info.lyrics.splitlines() if l.strip()])
         src = " · ".join(x for x in (info.meta_source, info.lyric_source) if x)
         self.set_status(key="fetch_ok", src=src, n=n)
@@ -884,7 +848,6 @@ class TuneKuoUI:
         self.refresh_list()
         self.save_state()
 
-    # ------------------------------------------------------------ 顶部按钮
     def choose_files(self) -> None:
         files = filedialog.askopenfilenames(
             title=tr("dlg.choose_files"),
@@ -935,7 +898,6 @@ class TuneKuoUI:
         else:
             self.btn_default.config(text=tr("tool.set_default"), bg=ACCENT_D, fg="#FFFFFF")
 
-    # ------------------------------------------------------------ 播放控制
     def toggle_play(self) -> None:
         if not self.player.tracks:
             self.choose_files()
@@ -991,7 +953,6 @@ class TuneKuoUI:
                 self.player.seek(self.lrc_lines[i][0])
                 return
 
-    # ------------------------------------------------------------ 界面刷新
     def _tick(self) -> None:
         try:
             while True:
@@ -1079,7 +1040,6 @@ class TuneKuoUI:
         self._set_cover(t.cover)
         self._set_lyrics(t)
 
-    # ------------------------------------------------------------ 封面
     def _set_cover(self, data: Optional[bytes]) -> None:
         self._cover_data = data
         self._render_cover()
@@ -1109,12 +1069,10 @@ class TuneKuoUI:
                 return
             except Exception:
                 pass
-        # 占位：圆角方块 + 音符
         c.create_rectangle(x0, y0, x0 + size, y0 + size, fill=CARD, outline="")
         c.create_text(w / 2, h / 2 - 14, text=GLYPH_MUSIC, fill="#4A4A66", font=(ICON_FONT, int(size / 4)))
         c.create_text(w / 2, y0 + size - 26, text=tr("no_cover"), fill="#4A4A66", font=(UI_FONT, 9))
 
-    # ------------------------------------------------------------ 歌词
     def _set_lyrics(self, t: Track) -> None:
         self.lyric_text.configure(state="normal")
         self.lyric_text.delete("1.0", "end")
@@ -1161,11 +1119,10 @@ class TuneKuoUI:
             self.lyric_text.yview_moveto(frac)
         self.lyric_text.configure(state="disabled")
 
-    # ------------------------------------------------------------ 状态存取
     def save_state(self) -> None:
         try:
             data = {}
-            try:                     # 先读出已有的键（如 lang），只覆盖自己管的那几个
+            try:
                 with open(STATE_FILE, "r", encoding="utf-8") as fp:
                     old = json.load(fp)
                 if isinstance(old, dict):
@@ -1195,7 +1152,7 @@ class TuneKuoUI:
             return
         lang = data.get("lang")
         if isinstance(lang, str) and lang != current_language() and lang in {c for c, _ in LANGS}:
-            set_language(lang, save=False)      # 启动时按记住的语言显示
+            set_language(lang, save=False)
             self._retranslate()
         paths = [p for p in data.get("tracks", []) if isinstance(p, str) and os.path.isfile(p)]
         if paths:
@@ -1215,7 +1172,6 @@ class TuneKuoUI:
         self.player.set_volume(vol)
         self._update_mode_button()
 
-    # ------------------------------------------------------------ 关闭
     def on_close(self) -> None:
         try:
             self._tip_hide()

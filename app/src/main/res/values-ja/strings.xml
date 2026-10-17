@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">TuneKuo</string>
 
-    <!-- メイン画面 -->
     <string name="library_title">音楽ライブラリ</string>
     <string name="scanning">スキャン中…</string>
     <string name="search_hint">曲名 / アーティスト / アルバムを検索</string>
@@ -12,28 +11,23 @@
     <string name="rescan">再スキャン</string>
     <string name="rescan_done">再スキャン完了：%1$d 曲</string>
 
-    <!-- 再生モード -->
     <string name="mode_sequential">順番再生</string>
     <string name="mode_repeat_list">リストループ</string>
     <string name="mode_repeat_one">1曲リピート</string>
     <string name="mode_shuffle">シャッフル</string>
 
-    <!-- ライブラリ情報 -->
     <string name="unknown_artist">不明なアーティスト</string>
     <string name="unknown_album">不明なアルバム</string>
     <string name="local_file">ローカルファイル</string>
 
-    <!-- 歌詞画面 -->
     <string name="no_lyrics">歌詞がありません</string>
 
-    <!-- 設定画面 -->
     <string name="settings">設定</string>
     <string name="settings_language">言語</string>
     <string name="settings_feedback">バグ・ご意見の報告</string>
     <string name="back">← 戻る</string>
     <string name="version_fmt">TuneKuo %1$s</string>
 
-    <!-- 長押しメニュー -->
     <string name="menu_fetch_info">オンラインで曲情報を取得（歌詞付き）</string>
     <string name="menu_detail">曲の詳細</string>
     <string name="menu_copy_title">曲名をコピー</string>
@@ -60,7 +54,6 @@
     <string name="copied">コピーしました</string>
     <string name="kv_fmt">%1$s：%2$s</string>
 
-    <!-- 通知 -->
     <string name="notif_channel_playback">再生サービス</string>
     <string name="notif_ready">準備完了</string>
     <string name="notif_prev">前へ</string>

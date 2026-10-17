@@ -1,13 +1,3 @@
-"""定位可用的 libvlc，并设置 python-vlc 认得的两个环境变量。
-
-必须在 `import vlc` 之前被导入（player.py 顶部就 import 本模块）。
-Windows 查找顺序：
-    1. 随程序一起打包的 vlc\\            （PyInstaller onedir: exe 同级 或 _internal\\vlc）
-    2. 开发目录 vendor\\vlc64\\          （scripts\\fetch_vlc.ps1 下载的 64 位 VLC）
-    3. 系统安装的 64 位 VLC              （Program Files\\VideoLAN\\VLC）
-Linux/macOS：先看随包携带的 libvlc.so/libvlc.dylib，都没有就让 python-vlc 自己找系统装的 VLC。
-注意：Program Files (x86) 里的 VLC 是 32 位，64 位 Python 载入不了，故意跳过。
-"""
 from __future__ import annotations
 
 import os
@@ -19,13 +9,10 @@ MOD_ENV = "PYTHON_VLC_MODULE_PATH"
 
 _lib_path: Optional[str] = None
 
-
 def base_dir() -> str:
-    """打包后是 exe 所在目录，开发时是项目根目录。"""
     if getattr(sys, "frozen", False):
         return os.path.dirname(os.path.abspath(sys.executable))
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 def candidates() -> List[str]:
     base = base_dir()
@@ -39,7 +26,6 @@ def candidates() -> List[str]:
         if pf:
             out.append(os.path.join(pf, "VideoLAN", "VLC"))
     return out
-
 
 def _is_64bit_dll(path: str) -> bool:
     try:
@@ -59,9 +45,7 @@ def _is_64bit_dll(path: str) -> bool:
     except Exception:
         return False
 
-
 def posix_setup() -> Optional[str]:
-    """Linux/macOS：优先用随包携带的 libvlc，找不到就交给 python-vlc 去系统里找。"""
     global _lib_path
     base = base_dir()
     for d in (os.path.join(base, "vlc"), os.path.join(base, "_internal", "vlc"),
@@ -83,9 +67,7 @@ def posix_setup() -> Optional[str]:
         return lib
     return None
 
-
 def setup() -> Optional[str]:
-    """设置环境变量并返回 libvlc 路径；找不到返回 None。"""
     global _lib_path
     if _lib_path:
         return _lib_path
@@ -110,6 +92,5 @@ def setup() -> Optional[str]:
         _lib_path = dll
         return dll
     return None
-
 
 LIB = setup()

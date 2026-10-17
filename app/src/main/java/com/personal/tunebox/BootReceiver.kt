@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.view.KeyEvent
 
-/** 蓝牙/耳机线控：播放暂停与切歌。 */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_MEDIA_BUTTON) return

@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# 把打包好的 TuneKuo 装到用户目录，并注册成音频默认播放器（全程不需要 root）
-#     desktop/linux/install.sh              # 装到 ~/.local
-#     PREFIX=~/.local desktop/linux/install.sh
-#     desktop/linux/install.sh --uninstall
 set -e
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PREFIX="${PREFIX:-$HOME/.local}"
@@ -28,7 +24,6 @@ rm -rf "$LIBDIR/TuneKuo"
 cp -r "$SRC" "$LIBDIR/TuneKuo"
 ln -sf "$LIBDIR/TuneKuo/TuneKuo" "$BINDIR/tunekuo"
 
-# .desktop 与 xdg-mime 关联交给程序自己（和 Windows 端同一份实现）
 "$BINDIR/tunekuo" --register --quiet || true
 
 echo "装好了：$BINDIR/tunekuo"

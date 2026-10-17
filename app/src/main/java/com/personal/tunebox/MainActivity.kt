@@ -37,8 +37,8 @@ import java.io.File
 class MainActivity : AppCompatActivity() {
 
     private lateinit var adapter: SongAdapter
-    private val songs = ArrayList<Song>()          // 完整曲库
-    private val display = ArrayList<Song>()        // 搜索过滤后的展示列表
+    private val songs = ArrayList<Song>()
+    private val display = ArrayList<Song>()
     private val handler = Handler(Looper.getMainLooper())
     private val ui = CoroutineScope(Dispatchers.Main)
 
@@ -51,9 +51,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnPlay: ImageView
     private lateinit var btnMode: TextView
     private lateinit var ivNowCover: ImageView
-    private var loadedFor: String? = null   // 当前已加载封面/歌词的歌曲路径
+    private var loadedFor: String? = null
 
-    // 两页式界面：主界面 / 设置页
     private lateinit var rootSwipe: SwipeLayout
     private lateinit var pageMain: View
     private lateinit var pageSettings: View
@@ -88,10 +87,8 @@ class MainActivity : AppCompatActivity() {
                 }
                 btnMode.text = modeText
                 tvMode.text = modeText
-                // 列表高亮当前曲目
                 if (adapter.playingPath != e.current!!.path)
                     adapter.playingPath = e.current!!.path
-                // 切歌后加载封面+歌词
                 val cur = e.current!!
                 if (cur.path != loadedFor) {
                     loadedFor = cur.path
@@ -104,11 +101,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** 后台提取封面与歌词，更新底部小图与歌词页缓存。 */
     private fun loadArt(song: Song) {
         ui.launch {
             val r = withContext(Dispatchers.IO) { MediaArt.load(this@MainActivity, song) }
-            // 期间可能已切歌
             val e = PlaybackService.engine ?: return@launch
             if (e.current?.path != song.path) return@launch
             MediaArtHolder.cover = r.cover
@@ -132,7 +127,6 @@ class MainActivity : AppCompatActivity() {
         btnMode = findViewById(R.id.btnMode)
         ivNowCover = findViewById(R.id.ivNowCover)
 
-        // 点击小箭头 → 全屏歌词页
         findViewById<View>(R.id.btnLyrics).setOnClickListener {
             val e = PlaybackService.engine
             if (e?.current != null) startActivity(Intent(this, LyricsActivity::class.java))
@@ -146,7 +140,6 @@ class MainActivity : AppCompatActivity() {
         }, { song, anchor -> showSongMenu(song, anchor) })
         rv.adapter = adapter
 
-        // 搜索框：实时过滤 歌名/歌手/专辑
         val etSearch = findViewById<EditText>(R.id.etSearch)
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -178,17 +171,14 @@ class MainActivity : AppCompatActivity() {
         requestPermissionAndScan()
     }
 
-    // ---------------- 两页式界面：主界面 ⇄ 设置页 ----------------
-
     private fun setupPager() {
         rootSwipe = findViewById(R.id.rootSwipe)
         pageMain = findViewById(R.id.pageMain)
         pageSettings = findViewById(R.id.pageSettings)
 
-        // 拖动进度条时不翻页
         rootSwipe.exclude = seekBar
-        rootSwipe.onSwipeRight = { slideToSettings(true) }   // 主界面右滑 → 设置页
-        rootSwipe.onSwipeLeft = { slideToMain(true) }        // 设置页左滑 → 主界面
+        rootSwipe.onSwipeRight = { slideToSettings(true) }
+        rootSwipe.onSwipeLeft = { slideToMain(true) }
 
         findViewById<View>(R.id.btnSettings).setOnClickListener { slideToSettings(true) }
         findViewById<View>(R.id.btnRescan).setOnClickListener { rescan() }
@@ -207,7 +197,6 @@ class MainActivity : AppCompatActivity() {
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.feedback_url))))
             } catch (_: Exception) {
-                // 没有浏览器等情况下静默忽略
             }
         }
         val ver = try {
@@ -218,7 +207,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvVersion).text = getString(R.string.version_fmt, ver)
         refreshLanguageOptions()
 
-        // 刚因为切换语言重建过 → 直接停在设置页
         val prefs = LocaleHelper.pref(this)
         if (prefs.getBoolean(LocaleHelper.KEY_OPEN_SETTINGS, false)) {
             prefs.edit().putBoolean(LocaleHelper.KEY_OPEN_SETTINGS, false).apply()
@@ -298,9 +286,6 @@ class MainActivity : AppCompatActivity() {
         if (showingSettings) slideToMain(true) else super.onBackPressed()
     }
 
-    // ---------------- 曲库 ----------------
-
-    /** 重新扫描曲库（右上角「重新扫描」，或首次进入时的权限通过后）。 */
     private fun rescan() {
         if (scanning) return
         scanning = true
@@ -319,7 +304,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** 按搜索词过滤展示列表（歌名/歌手/专辑，大小写不敏感）。 */
     private fun applyFilter() {
         val q = (findViewById<EditText>(R.id.etSearch).text ?: "").toString().trim()
         display.clear()
@@ -373,7 +357,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun playAt(pos: Int) {
         PlaybackService.start(this)
-        // 服务 onCreate 是同步的，startForegroundService 后 engine 可能尚未就绪，轮询一次
         fun go() {
             val e = PlaybackService.engine
             if (e != null) e.setQueue(songs, pos) else handler.postDelayed({ go() }, 100)
@@ -385,8 +368,6 @@ class MainActivity : AppCompatActivity() {
         val s = ms / 1000
         return "%d:%02d".format(s / 60, s % 60)
     }
-
-    // ---------------- 长按歌曲：弹出菜单 ----------------
 
     private fun showSongMenu(song: Song, anchor: View) {
         val pop = PopupMenu(this, anchor)
@@ -412,7 +393,6 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, getString(R.string.copied), Toast.LENGTH_SHORT).show()
     }
 
-    /** 文件信息（本地即可得，不联网）。 */
     private fun showDetail(song: Song) {
         val sb = StringBuilder()
         sb.append(kv(R.string.detail_title, song.title)).append('\n')
@@ -429,7 +409,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    /** 联网获取元数据/封面/歌词，命中后写缓存并当场生效（正在播放的曲目会立刻换封面与歌词）。 */
     private fun fetchOnline(song: Song) {
         Toast.makeText(this, getString(R.string.fetching_online), Toast.LENGTH_SHORT).show()
         ui.launch {
@@ -438,7 +417,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, getString(R.string.fetch_failed), Toast.LENGTH_LONG).show()
                 return@launch
             }
-            // 取到的信息直接替换到曲目上：列表那一行和正在播放栏都立刻更新
             val i = songs.indexOfFirst { it.path == song.path }
             if (i >= 0) {
                 val old = songs[i]

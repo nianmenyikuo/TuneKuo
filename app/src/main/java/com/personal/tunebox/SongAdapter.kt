@@ -7,10 +7,6 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-/**
- * 歌曲列表适配器：显示过滤后的列表，点击回调完整 Song 对象，
- * 当前播放曲目高亮（左侧显示 ♪ 并加粗）。
- */
 class SongAdapter(
     private val songs: List<Song>,
     private val onClick: (Song) -> Unit,

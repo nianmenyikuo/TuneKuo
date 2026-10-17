@@ -1,19 +1,3 @@
-"""打 .deb 安装包（只用标准库：Windows 上也能跑，方便本地先把结构验一遍）。
-
-    python scripts/make_deb.py [-o 输出目录]
-
-包里装的是源码 + 启动器，Python 和 libvlc 都用系统的，所以 deb 本体只有几十 KB：
-
-    /usr/bin/tunekuo                          启动器（调 /usr/share/tunekuo/main.py）
-    /usr/share/tunekuo/*.py                   程序本体
-    /usr/share/tunekuo/assets/icon.png        图标
-    /usr/share/applications/tunekuo.desktop   桌面项（登记 25 种音频格式）
-    /usr/share/icons/hicolor/256x256/apps/tunekuo.png
-    /usr/share/doc/tunekuo/copyright
-
-依赖 python3 / python3-tk / python3-vlc / vlc-plugin-base(libvlc)，
-装完在终端敲 tunekuo 或从应用菜单里点开都能用。
-"""
 from __future__ import annotations
 
 import io
@@ -23,21 +7,21 @@ import tarfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)              # desktop/
+ROOT = os.path.dirname(HERE)
 APP = os.path.join(ROOT, "app")
 sys.path.insert(0, APP)
 
-import assoc  # noqa: E402
-from version import APP_NAME, VERSION  # noqa: E402
+import assoc
+from version import APP_NAME, VERSION
 
 PKG = "tunekuo"
-ARCH = "all"                              # 纯 Python 源码包，不分架构
+ARCH = "all"                              
 LIBDIR = "/usr/share/tunekuo"
 ICONDIR = "/usr/share/icons/hicolor/256x256/apps"
 MAINTAINER = "nianmenyikuo <nianmenyikuo@users.noreply.github.com>"
 HOMEPAGE = "https://github.com/nianmenyikuo/TuneKuo"
 DEPENDS = "python3 (>= 3.9), python3-tk, python3-vlc, vlc-plugin-base"
-RECOMMENDS = "python3-pil"     # 没有也能跑，只是封面走 PNG 直读那条路
+RECOMMENDS = "python3-pil"     
 
 LAUNCHER = f"""#!/bin/sh
 # TuneKuo 启动器：用系统的 python3 跑 {LIBDIR}/main.py
@@ -52,9 +36,7 @@ COPYRIGHT = f"""TuneKuo {VERSION} —— 基于 libVLC 的本地音乐播放器�
 上游项目：{HOMEPAGE}
 """
 
-
 def desktop_entry() -> str:
-    """桌面项：Exec 指向 /usr/bin/tunekuo，MimeType 与 Windows 注册表用同一份扩展名表。"""
     mimes = ";".join(assoc.mimes()) + ";"
     return (
         "[Desktop Entry]\n"
@@ -71,9 +53,7 @@ def desktop_entry() -> str:
         f"MimeType={mimes}\n"
     )
 
-
 def payload() -> list[tuple[str, bytes, int]]:
-    """(包内路径, 内容, 权限位) —— 顺序即安装顺序，idempotent。"""
     out: list[tuple[str, bytes, int]] = [
         ("./usr/bin/tunekuo", LAUNCHER.encode("utf-8"), 0o755),
         ("./usr/share/applications/tunekuo.desktop", desktop_entry().encode("utf-8"), 0o644),
@@ -89,13 +69,10 @@ def payload() -> list[tuple[str, bytes, int]]:
                 out.append((f".{LIBDIR}/{name}", fp.read(), 0o644))
     return out
 
-
 def tar_gz(entries: list[tuple[str, bytes, int]]) -> bytes:
-    """tar.gz。父目录必须显式写进包里 —— dpkg 不会替我们建目录，少了会报
-    `unable to create '/usr/share/doc/tunekuo/copyright.dpkg-new': No such file or directory`。"""
     dirs: dict[str, int] = {}
     for name, _, _ in entries:
-        parts = name.split("/")[1:-1]              # "./usr/bin/tunekuo" -> ["usr", "bin"]
+        parts = name.split("/")[1:-1]              
         for i in range(1, len(parts) + 1):
             dirs.setdefault("./" + "/".join(parts[:i]) + "/", 0o755)
     buf = io.BytesIO()
@@ -118,16 +95,14 @@ def tar_gz(entries: list[tuple[str, bytes, int]]) -> bytes:
             tf.addfile(info, io.BytesIO(blob))
     return buf.getvalue()
 
-
 def ar_pack(members: list[tuple[str, bytes]]) -> bytes:
-    """deb 就是个 ar 归档：debian-binary + control.tar.gz + data.tar.gz。"""
     out = bytearray(b"!<arch>\n")
     for name, blob in members:
         header = (
             name.ljust(16)
             + str(int(time.time())).ljust(12)
-            + "0".ljust(6)          # uid
-            + "0".ljust(6)          # gid
+            + "0".ljust(6)          
+            + "0".ljust(6)          
             + "100644".ljust(8)
             + str(len(blob)).ljust(10)
             + "`\n"
@@ -135,9 +110,8 @@ def ar_pack(members: list[tuple[str, bytes]]) -> bytes:
         assert len(header) == 60, len(header)
         out += header.encode("ascii") + blob
         if len(blob) % 2:
-            out += b"\n"            # ar 成员按偶数字节对齐
+            out += b"\n"            
     return bytes(out)
-
 
 def control_text(installed_kb: int) -> str:
     return (
@@ -158,11 +132,10 @@ def control_text(installed_kb: int) -> str:
         " Chinese, English and Japanese.\n"
     )
 
-
 def main() -> int:
     out_dir = os.path.join(ROOT, "dist-linux")
     argv = sys.argv[1:]
-    if "--desktop" in argv:            # 给 AppImage 脚本复用同一份 .desktop
+    if "--desktop" in argv:            
         print(desktop_entry(), end="")
         return 0
     if "-o" in argv:
@@ -186,7 +159,6 @@ def main() -> int:
     with open(path, "wb") as fp:
         fp.write(deb)
 
-    # 自己把包读回来验一遍：ar 成员名、control 版本、data 里的路径清单
     assert deb[:8] == b"!<arch>\n"
     assert deb.count(b"debian-binary") == 1
     with tarfile.open(fileobj=io.BytesIO(data_tar), mode="r:gz") as tf:
@@ -194,8 +166,8 @@ def main() -> int:
     assert f".{LIBDIR}/main.py" in names and f".{LIBDIR}/paths.py" in names
     assert "./usr/bin/tunekuo" in names
     assert f"./usr/share/icons/hicolor/256x256/apps/{PKG}.png" in names
-    assert "./usr/share/doc/tunekuo" in names           # 目录条目：少了 dpkg 装不上
-    assert "./usr/share/tunekuo/assets" in names        # （tarfile 会去掉目录名末尾的 /）
+    assert "./usr/share/doc/tunekuo" in names           
+    assert "./usr/share/tunekuo/assets" in names        
 
     print(f"输出      : {path}")
     print(f"大小      : {len(deb):,} B")
@@ -203,7 +175,6 @@ def main() -> int:
     print(f"文件数    : {len(data)}")
     print("顶层      : debian-binary + control.tar.gz + data.tar.gz")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

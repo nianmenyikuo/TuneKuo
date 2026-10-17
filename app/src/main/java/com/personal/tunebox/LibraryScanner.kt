@@ -8,18 +8,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * 曲库扫描：
- * 1) MediaStore（系统音频库，快）；
- * 2) 补扫文件系统（MediaStore 认不出的扩展名，如 .ape/.dsf/.dff/.wv/.tak/.tta）。
- */
 object LibraryScanner {
 
-    // MediaStore 能覆盖的常见格式
     private val COMMON_EXT = setOf(
         "mp3", "flac", "m4a", "aac", "ogg", "oga", "opus", "wav", "wma", "aiff", "aif"
     )
-    // libVLC 支持但 MediaStore 常忽略的无损/小众格式
     private val EXTRA_EXT = setOf(
         "ape", "dsf", "dff", "wv", "tak", "tta", "mka", "ac3", "dts", "shn", "caf", "alac"
     )
@@ -28,7 +21,6 @@ object LibraryScanner {
         val seen = HashSet<String>()
         val out = ArrayList<Song>()
 
-        // ---- 1. MediaStore ----
         val proj = arrayOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
@@ -61,7 +53,6 @@ object LibraryScanner {
             }
         } catch (_: Exception) { }
 
-        // ---- 2. 文件系统补扫（Download/Music/Documents 根目录递归） ----
         val roots = listOf(
             android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_MUSIC),
             android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
@@ -72,7 +63,6 @@ object LibraryScanner {
             if (root != null && root.exists()) walk(root, seen, out, context)
         }
 
-        // 之前「联网获取」到过的曲目信息，覆盖系统扫出来的旧标签
         for (i in out.indices) {
             val m = OnlineMeta.cachedMeta(context, out[i]) ?: continue
             val s = out[i]

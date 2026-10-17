@@ -1,9 +1,3 @@
-"""TuneKuo: 音频标签 / 内嵌封面 / 歌词读取（仅标准库）。
-
-支持容器：ID3v2(MP3)、FLAC、MP4/M4A、APE/APEv2(Ape/WavPack/TTA)、Vorbis(OGG/Opus)。
-封面优先级：内嵌图 > 同目录常见命名图。
-歌词优先级：内嵌歌词标签 > 同名 .lrc 文件。
-"""
 from __future__ import annotations
 
 import os
@@ -21,14 +15,7 @@ PLAYLIST_EXTS = {".m3u", ".m3u8", ".pls"}
 _COVER_NAMES = ("cover", "folder", "album", "front", "albumart", "封面", "封面图")
 _IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp")
 
-
-# ---------------------------------------------------------------- 文本工具
-
 def _decode_legacy(buf: bytes) -> str:
-    """ID3v2 编码字节写 0（名义 ISO-8859-1）时，中文 MP3 里常常其实是 UTF-8 或 GBK。
-
-    直接按 latin-1 解会得到「ÖÐ¹ú」这类乱码，所以先试 UTF-8、再试 GBK，都不成才退回 latin-1。
-    """
     raw = buf.split(b"\x00", 1)[0]
     for codec in ("utf-8", "gbk"):
         try:
@@ -38,7 +25,6 @@ def _decode_legacy(buf: bytes) -> str:
         if text.strip():
             return text.strip()
     return buf.decode("latin-1", "replace").strip("\x00").strip()
-
 
 def _decode_text(buf: bytes, enc: int) -> str:
     if not buf:
@@ -53,7 +39,6 @@ def _decode_text(buf: bytes, enc: int) -> str:
         return buf.decode("utf-16-be", "replace").strip("\x00").strip()
     return buf.decode("utf-8", "replace").strip("\x00").strip()
 
-
 def _split_cstring(buf: bytes, enc: int):
     if enc in (1, 2):
         i = 0
@@ -67,15 +52,11 @@ def _split_cstring(buf: bytes, enc: int):
         return buf, b""
     return buf[:j], buf[j + 1:]
 
-
-# ---------------------------------------------------------------- ID3v2
-
 def _synchsafe(b: bytes) -> int:
     v = 0
     for x in b:
         v = (v << 7) | (x & 0x7F)
     return v
-
 
 _ID3_FRAMES = {
     b"TIT2": "title", b"TT2": "title",
@@ -86,7 +67,6 @@ _ID3_FRAMES = {
     b"TXXX": "txxx",
 }
 
-
 def _parse_apic(payload: bytes, ver: int) -> Optional[bytes]:
     if not payload:
         return None
@@ -95,25 +75,23 @@ def _parse_apic(payload: bytes, ver: int) -> Optional[bytes]:
     if ver == 2:
         if len(rest) < 4:
             return None
-        rest = rest[3:]  # 3 字节图片格式
+        rest = rest[3:]
     else:
         mime, rest = _split_cstring(rest, 0)
     if not rest:
         return None
-    rest = rest[1:]  # picture type
+    rest = rest[1:]
     _desc, rest = _split_cstring(rest, enc)
     data = rest.strip(b"\x00")
     if len(data) < 64:
         return None
     if data[:2] == b"\xff\xd8" or data[:8] == b"\x89PNG\r\n\x1a\n" or data[:4] == b"RIFF":
         return data
-    # 有些文件描述字段没解析干净，尝试直接找图片头
     for sig in (b"\xff\xd8\xff", b"\x89PNG\r\n\x1a\n"):
         k = data.find(sig)
         if k >= 0:
             return data[k:]
     return data
-
 
 def _parse_id3v2(f, out: dict) -> None:
     f.seek(0)
@@ -159,18 +137,12 @@ def _parse_id3v2(f, out: dict) -> None:
                 out.setdefault("lyrics", _decode_text(rest, payload[0]))
             continue
         if key == "lyrics":
-            # USLT: enc + lang(3) + descriptor + text
             if len(payload) > 4:
                 _lang = payload[1:4]
                 _desc, rest = _split_cstring(payload[4:], payload[0])
                 out.setdefault("lyrics", _decode_text(rest, payload[0]))
             continue
-        # 注意 payload[0] 是编码字节，正文从 payload[1:] 开始；整个 payload 丢进
-        # _decode_text 会多出开头那个字节，UTF-16 下就是「！…」这种偏移乱码。
         out.setdefault(key, _decode_text(payload[1:], payload[0]))
-
-
-# ---------------------------------------------------------------- Vorbis comment / FLAC
 
 def _parse_vorbis_comment(buf: bytes) -> dict:
     d: dict = {}
@@ -199,19 +171,16 @@ def _parse_vorbis_comment(buf: bytes) -> dict:
         pass
     return d
 
-
 _VORBIS_KEYS = {
     "TITLE": "title", "ARTIST": "artist", "ALBUM": "album",
     "TRACKNUMBER": "track", "LYRICS": "lyrics", "UNSYNCEDLYRICS": "lyrics",
 }
-
 
 def _apply_vorbis(d: dict, out: dict) -> None:
     for k, v in d.items():
         key = _VORBIS_KEYS.get(k)
         if key and key not in out and v:
             out[key] = v.strip()
-
 
 def _parse_flac(f, out: dict) -> None:
     f.seek(0)
@@ -228,7 +197,6 @@ def _parse_flac(f, out: dict) -> None:
             break
         block = f.read(length)
         if btype == 0:
-            # STREAMINFO：采样率(20bit) + 声道 + 位深 + 总采样数(36bit)，直接算出时长，不用等 libvlc
             try:
                 val = int.from_bytes(block[10:18], "big")
                 rate = val >> 44
@@ -246,7 +214,7 @@ def _parse_flac(f, out: dict) -> None:
                 pos += 4 + mlen
                 dlen = int.from_bytes(block[pos:pos + 4], "big")
                 pos += 4 + dlen
-                pos += 16  # w/h/depth/colors
+                pos += 16
                 plen = int.from_bytes(block[pos:pos + 4], "big")
                 pos += 4
                 if out.get("cover") is None and plen > 0:
@@ -256,9 +224,7 @@ def _parse_flac(f, out: dict) -> None:
         if last:
             break
 
-
 def _parse_ogg(f, out: dict) -> None:
-    """在文件头部若干页里找 vorbis/opus 注释块。"""
     f.seek(0)
     data = f.read(256 * 1024)
     for magic, skip in ((b"OpusTags", 8), (b"\x03vorbis", 7)):
@@ -267,21 +233,17 @@ def _parse_ogg(f, out: dict) -> None:
             _apply_vorbis(_parse_vorbis_comment(data[k + skip:]), out)
             break
 
-
-# ---------------------------------------------------------------- APEv2
-
 def _parse_wav(f, out: dict) -> None:
-    """WAV：时长 = data 块字节数 / fmt 里的 byte_rate（WAV 没有标签，也能立刻算出时长）。"""
-    f.seek(12)  # 跳过 "RIFF" + 文件长度 + "WAVE"
+    f.seek(12)
     rate = 0
     data = 0
-    for _ in range(64):  # 畸形文件保护：最多看 64 个块
+    for _ in range(64):
         hdr = f.read(8)
         if len(hdr) < 8:
             break
         cid = hdr[:4]
         size = int.from_bytes(hdr[4:8], "little")
-        pad = size & 1  # RIFF 块按偶数字节对齐
+        pad = size & 1
         if cid == b"fmt ":
             body = f.read(min(size, 64))
             if len(body) >= 12:
@@ -296,7 +258,6 @@ def _parse_wav(f, out: dict) -> None:
             break
     if rate > 0 and data > 0:
         out["duration"] = data * 1000 // rate
-
 
 def _parse_ape(f, out: dict) -> None:
     try:
@@ -356,9 +317,6 @@ def _parse_ape(f, out: dict) -> None:
     except Exception:
         pass
 
-
-# ---------------------------------------------------------------- MP4
-
 def _parse_mp4(f, out: dict) -> None:
     try:
         f.seek(0, os.SEEK_END)
@@ -366,7 +324,6 @@ def _parse_mp4(f, out: dict) -> None:
         _walk_atoms(f, 0, total, 0, out)
     except Exception:
         pass
-
 
 def _walk_atoms(f, start: int, end: int, depth: int, out: dict) -> None:
     if depth > 6:
@@ -396,7 +353,6 @@ def _walk_atoms(f, start: int, end: int, depth: int, out: dict) -> None:
             _parse_ilst_item(f, body, min(pos + size, end), typ, out)
         pos += size
 
-
 def _parse_ilst_item(f, start: int, end: int, typ: bytes, out: dict) -> None:
     pos = start
     while pos + 8 <= end:
@@ -423,15 +379,10 @@ def _parse_ilst_item(f, start: int, end: int, typ: bytes, out: dict) -> None:
             return
         pos += size
 
-
-# ---------------------------------------------------------------- LRC
-
 _LRC_TIME = re.compile(r"\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]")
 _LRC_META = re.compile(r"^\[(ar|ti|al|by|offset|length):(.*)\]$", re.I)
 
-
 def parse_lrc(text: str, offset_ms: int = 0):
-    """解析 LRC 文本 -> [(time_ms, line)] 按时间排序；忽略元信息行。"""
     out = []
     for raw in text.splitlines():
         line = raw.strip()
@@ -459,9 +410,6 @@ def parse_lrc(text: str, offset_ms: int = 0):
     out.sort(key=lambda x: x[0])
     return out
 
-
-# ---------------------------------------------------------------- 统一入口
-
 def _folder_cover(path: str) -> Optional[bytes]:
     d = os.path.dirname(path)
     try:
@@ -487,7 +435,6 @@ def _folder_cover(path: str) -> Optional[bytes]:
                 pass
     return None
 
-
 def read_lyrics_file(path: str) -> str:
     base = os.path.splitext(path)[0]
     for ext in (".lrc", ".LRC", ".Lrc"):
@@ -501,9 +448,7 @@ def read_lyrics_file(path: str) -> str:
                     continue
     return ""
 
-
 def read_tags(path: str) -> dict:
-    """返回 {'title','artist','album','cover':bytes|None,'lyrics':str}（缺项不含该键）。"""
     out: dict = {}
     ext = os.path.splitext(path)[1].lower()
     try:
@@ -541,9 +486,7 @@ def read_tags(path: str) -> dict:
             out[k] = out[k].replace("\x00", "").strip()
     return out
 
-
 def parse_playlist(path: str):
-    """读取 m3u/m3u8/pls 播放列表，返回其中的音频文件路径。"""
     ext = os.path.splitext(path)[1].lower()
     files = []
     if ext == ".pls":

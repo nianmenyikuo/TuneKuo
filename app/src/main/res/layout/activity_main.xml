@@ -5,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="#101018">
 
-    <!-- ==================== 第一页：播放主界面 ==================== -->
     <LinearLayout
         android:id="@+id/pageMain"
         android:layout_width="match_parent"
@@ -13,7 +12,6 @@
         android:orientation="vertical"
         android:background="#101018">
 
-        <!-- 顶部：标题 + 数量 + 重新扫描 + 设置 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -59,7 +57,6 @@
                 android:src="@drawable/ic_settings" />
         </LinearLayout>
 
-        <!-- 搜索框 -->
         <EditText
             android:id="@+id/etSearch"
             android:layout_width="match_parent"
@@ -90,7 +87,6 @@
             android:paddingTop="4dp"
             android:paddingBottom="8dp" />
 
-        <!-- 底部播放条 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -214,7 +210,6 @@
                     android:src="@drawable/ic_next" />
             </LinearLayout>
 
-            <!-- 播放模式小按钮 -->
             <TextView
                 android:id="@+id/btnMode"
                 android:layout_width="wrap_content"
@@ -228,7 +223,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- ==================== 第二页：设置（主界面右滑进入） ==================== -->
     <ScrollView
         android:id="@+id/pageSettings"
         android:layout_width="match_parent"
@@ -263,7 +257,6 @@
                 android:textSize="24sp"
                 android:textStyle="bold" />
 
-            <!-- 语言 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -315,7 +308,6 @@
                 android:textColor="#B0B0C0"
                 android:textSize="16sp" />
 
-            <!-- 反馈链接 -->
             <TextView
                 android:id="@+id/btnFeedback"
                 android:layout_width="wrap_content"

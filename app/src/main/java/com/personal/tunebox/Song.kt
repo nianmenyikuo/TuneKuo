@@ -1,6 +1,5 @@
 package com.personal.tunebox
 
-/** 一首歌曲的元数据。 */
 data class Song(
     val path: String,
     val title: String,

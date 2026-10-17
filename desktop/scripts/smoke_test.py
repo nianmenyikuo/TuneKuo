@@ -1,7 +1,3 @@
-"""冒烟测试（开发者用）：不开窗口，验证播放引擎与解码链路。
-
-    python scripts/smoke_test.py
-"""
 from __future__ import annotations
 
 import math
@@ -15,18 +11,17 @@ import wave
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "app"))
 
-import vlcenv  # noqa: E402
+import vlcenv
 
 print("libvlc  :", vlcenv.LIB)
 if vlcenv.LIB is None:
     print("结果    : 失败——找不到 64 位 libvlc")
     sys.exit(1)
 
-import vlc  # noqa: E402
-from player import PlayMode, Player, Track  # noqa: E402
+import vlc
+from player import PlayMode, Player, Track
 
 print("版本    :", vlc.libvlc_get_version().decode())
-
 
 def make_wav(path: str, seconds: float = 3.0, rate: int = 44100) -> None:
     with wave.open(path, "wb") as w:
@@ -38,7 +33,6 @@ def make_wav(path: str, seconds: float = 3.0, rate: int = 44100) -> None:
             v = int(12000 * math.sin(2 * math.pi * 440 * i / rate))
             frames += struct.pack("<hh", v, v)
         w.writeframes(bytes(frames))
-
 
 def transcode(src: str, dst: str, acodec: str, mux: str = "raw") -> bool:
     inst = vlc.Instance("--no-video", "--quiet")
@@ -56,7 +50,6 @@ def transcode(src: str, dst: str, acodec: str, mux: str = "raw") -> bool:
     inst.release()
     return ok
 
-
 def play_check(label: str, path: str) -> bool:
     events = []
     p = Player(on_event=lambda k, v=None: events.append(k))
@@ -71,7 +64,6 @@ def play_check(label: str, path: str) -> bool:
           f"音量 {p.get_volume():>3}  事件 {sorted(set(events))}  -> {'OK' if played else '失败'}")
     p.release()
     return played
-
 
 tmp = tempfile.mkdtemp(prefix="tunekuo_smoke_")
 wav = os.path.join(tmp, "tone.wav")
@@ -90,7 +82,6 @@ if transcode(wav, flac, "flac"):
 if transcode(wav, ogg, "vorb", "ogg"):
     results["OGG 解码"] = play_check("OGG", ogg)
 
-# 播放模式
 p = Player(on_event=lambda k, v=None: None)
 p.set_playlist([Track(path=wav) for _ in range(4)], start=0, autoplay=False)
 modes = []
@@ -99,8 +90,7 @@ for _ in range(4):
 p.release()
 print("\n播放模式轮换:", " -> ".join(modes))
 
-# 元数据解析（对生成的 wav 至少不应抛异常）
-from metadata import parse_lrc, read_tags  # noqa: E402
+from metadata import parse_lrc, read_tags
 
 tags = read_tags(wav)
 print("read_tags :", tags)

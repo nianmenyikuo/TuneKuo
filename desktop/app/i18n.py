@@ -1,10 +1,3 @@
-"""TuneKuo: 界面多语言（汉语 / English / 日本語）。
-
-- 所有界面文字都集中在本文件的 TEXT 字典里，格式为 key -> (zh, en, ja)。
-- 当前语言持久化在 %APPDATA%\\TuneKuo\\state.json 的 "lang" 字段里。
-  读写 state.json 时都是「读出来改一个键再写回去」，不会碰掉别的键。
-- 语言在第一次用到 t() 时惰性载入，所以界面构建时已经是记住的语言。
-"""
 from __future__ import annotations
 
 import json
@@ -21,7 +14,6 @@ _INDEX = {c: i for i, c in enumerate(_CODES)}
 _lang = None
 
 TEXT = {
-    # ---------------------------------------------------------- 主界面工具栏
     "tool.add_files": ("添加文件", "Add Files", "ファイルを追加"),
     "tool.add_folder": ("添加文件夹", "Add Folder", "フォルダを追加"),
     "tool.scan_library": ("扫描音乐库", "Scan Library", "ライブラリをスキャン"),
@@ -30,7 +22,6 @@ TEXT = {
                         "既定のプレーヤー {n}/{total}"),
     "tool.settings": ("设置", "Settings", "設定"),
     "tool.search_hint": ("搜索…", "Search…", "検索…"),
-    # ---------------------------------------------------------- 列表
     "col.title": ("标题", "Title", "タイトル"),
     "col.artist": ("歌手", "Artist", "アーティスト"),
     "col.album": ("专辑", "Album", "アルバム"),
@@ -38,7 +29,6 @@ TEXT = {
     "count.all": ("{n} 首", "{n} tracks", "{n} 曲"),
     "count.filtered": ("{n} / {total} 首", "{n} / {total} tracks", "{n} / {total} 曲"),
     "unknown_artist": ("未知艺术家", "Unknown Artist", "不明なアーティスト"),
-    # ---------------------------------------------------------- 播放区
     "not_playing": ("未在播放", "Not Playing", "再生していません"),
     "no_cover": ("无封面", "No Cover", "カバーなし"),
     "lyrics_empty": ("暂无歌词\n\n把同名 .lrc 文件放在歌曲旁边即可显示",
@@ -55,7 +45,6 @@ TEXT = {
     "tip.volume": ("音量", "Volume", "音量"),
     "tip.settings": ("打开设置", "Open settings", "設定を開く"),
     "tip.back": ("返回主界面", "Back to the player", "プレーヤーに戻る"),
-    # ---------------------------------------------------------- 状态栏
     "status.ready": ("就绪", "Ready", "準備完了"),
     "status.playing": ("播放中", "Playing", "再生中"),
     "status.paused": ("已暂停", "Paused", "一時停止中"),
@@ -73,7 +62,6 @@ TEXT = {
     "status.play_failed": ("这个文件播放失败（可能格式不受支持）",
                            "This file failed to play (the format may be unsupported)",
                            "このファイルを再生できませんでした（対応していない形式の可能性があります）"),
-    # ---------------------------------------------------------- 右键菜单
     "menu.play": ("播放", "Play", "再生"),
     "menu.reveal": ("在文件夹中显示", "Show in Folder", "フォルダーで表示"),
     "menu.remove": ("从列表移除", "Remove from List", "リストから削除"),
@@ -104,7 +92,6 @@ TEXT = {
     "detail.size": ("大小", "Size", "サイズ"),
     "detail.path": ("路径", "Path", "パス"),
     "kv_fmt": ("{k}：{v}", "{k}: {v}", "{k}：{v}"),
-    # ---------------------------------------------------------- 对话框
     "dlg.choose_files": ("选择音乐文件", "Select Music Files", "音楽ファイルを選択"),
     "dlg.choose_folder": ("选择音乐文件夹", "Select Music Folder", "音楽フォルダを選択"),
     "dlg.ft_audio": ("音频文件", "Audio Files", "音声ファイル"),
@@ -128,7 +115,6 @@ TEXT = {
                           "音楽プレーヤーの項目で TuneKuo を選んでください。"),
     "dlg.play_failed_title": ("播放失败", "Playback Failed", "再生に失敗"),
     "dlg.play_failed_body": ("无法播放：\n{name}", "Cannot play:\n{name}", "再生できません：\n{name}"),
-    # ---------------------------------------------------------- 设置页
     "settings.title": ("设置", "Settings", "設定"),
     "settings.back": ("← 返回", "← Back", "← 戻る"),
     "settings.language": ("语言", "Language", "言語"),
@@ -136,12 +122,8 @@ TEXT = {
     "settings.mark": ("●", "●", "●"),
 }
 
-
-# ------------------------------------------------------------------ state.json
 def state_file() -> str:
-    """与 ui.STATE_FILE 同一个文件（Windows 是 %APPDATA%\\TuneKuo，其它平台是 ~/.config/TuneKuo）。"""
     return os.path.join(paths.config_dir(), "state.json")
-
 
 def _read_state() -> dict:
     try:
@@ -150,7 +132,6 @@ def _read_state() -> dict:
         return data if isinstance(data, dict) else {}
     except Exception:
         return {}
-
 
 def _write_state(data: dict) -> None:
     path = state_file()
@@ -161,8 +142,6 @@ def _write_state(data: dict) -> None:
     except Exception:
         pass
 
-
-# ------------------------------------------------------------------ 语言
 def _load() -> str:
     global _lang
     if _lang is None:
@@ -170,10 +149,8 @@ def _load() -> str:
         _lang = saved if saved in _INDEX else DEFAULT_LANG
     return _lang
 
-
 def current_language() -> str:
     return _load()
-
 
 def language_name(code: str = "") -> str:
     code = code or _load()
@@ -182,9 +159,7 @@ def language_name(code: str = "") -> str:
             return name
     return code
 
-
 def set_language(code: str, save: bool = True) -> bool:
-    """切到 code；返回是否真的变了。save=True 时写回 state.json 的 lang 字段。"""
     global _lang
     if code not in _INDEX:
         code = DEFAULT_LANG
@@ -196,9 +171,7 @@ def set_language(code: str, save: bool = True) -> bool:
         _write_state(data)
     return changed
 
-
 def t(key: str, **kw) -> str:
-    """当前语言文本：找不到该语言就用中文兜底，再找不到返回 key 本身。"""
     row = TEXT.get(key)
     if not row:
         return key

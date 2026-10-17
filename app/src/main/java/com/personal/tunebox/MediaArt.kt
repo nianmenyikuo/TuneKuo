@@ -8,11 +8,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * 歌词 + 封面提取：
- * - 封面：MP3/FLAC/M4A 等内嵌专辑图（ALBUM_ART / PICTURE），无内嵌时找同目录 cover.jpg/folder.png 等。
- * - 歌词：优先内嵌歌词标签（USLT/LYRICS/LYRIC），其次同名 .lrc 文件，解析 [mm:ss.xx] 时间轴。
- */
 object MediaArt {
 
     data class Result(val cover: Bitmap?, val lyrics: List<LyricLine>)
@@ -27,11 +22,9 @@ object MediaArt {
             val mmr = MediaMetadataRetriever()
             mmr.setDataSource(song.path)
 
-            // ---- 封面 ----
             val art = mmr.embeddedPicture
             if (art != null) cover = BitmapFactory.decodeByteArray(art, 0, art.size)
 
-            // ---- 歌词：内嵌标签（USLT 常见自定义键值）----
             for (key in intArrayOf(92, 93, 94, 95)) {
                 try {
                     val t = mmr.extractMetadata(key)
@@ -41,7 +34,6 @@ object MediaArt {
             mmr.release()
         } catch (_: Exception) { }
 
-        // ---- 同目录封面文件 ----
         if (cover == null) {
             val dir = File(song.path).parentFile
             if (dir != null && dir.exists()) {
@@ -54,7 +46,6 @@ object MediaArt {
                         if (cover != null) break
                     }
                 }
-                // 没有命名匹配就取目录里第一张图
                 if (cover == null) {
                     for (f in dir.listFiles() ?: emptyArray()) {
                         val e = f.extension.lowercase()
@@ -67,7 +58,6 @@ object MediaArt {
             }
         }
 
-        // ---- 同名 .lrc 文件 ----
         if (lyrics.isEmpty()) {
             val base = File(song.path).absolutePath
             for (cand in listOf(base.substringBeforeLast('.') + ".lrc",
@@ -80,7 +70,6 @@ object MediaArt {
             }
         }
 
-        // ---- 联网获取过的封面/歌词（app 私有缓存，本地内容优先） ----
         if (cover == null) {
             val f = OnlineMeta.cachedCover(context, song)
             if (f.exists()) cover = BitmapFactory.decodeFile(f.absolutePath)
@@ -94,7 +83,6 @@ object MediaArt {
         Result(cover, lyrics)
     }
 
-    /** 解析 LRC 文本 → (timeMs, text) 列表；无时间轴行忽略。 */
     fun parseLrc(text: String): List<LyricLine> {
         val out = ArrayList<LyricLine>()
         val re = Regex("""\[(\d{1,2}):(\d{1,2})(?:[.:](\d{1,3}))?]""")
@@ -120,5 +108,4 @@ object MediaArt {
     }
 }
 
-/** 一行歌词。 */
 data class LyricLine(val timeMs: Long, val text: String)

@@ -11,15 +11,8 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import kotlin.random.Random
 
-/** 播放模式。 */
 enum class PlayMode { SEQUENTIAL, REPEAT_LIST, REPEAT_ONE, SHUFFLE }
 
-/**
- * libVLC 播放引擎封装。
- * - 全格式：libVLC 自带解码器，不依赖系统 MediaCodec，DSD(DSF/DFF)/APE/杜比 TrueHD 等都能放。
- * - 音频输出走 audiotrack，gapless 由 VLC 内部处理。
- * - 播放模式：顺序 / 列表循环 / 单曲循环 / 随机。
- */
 class PlayerEngine(private val context: Context) {
 
     val libVlc: LibVLC = LibVLC(
@@ -34,11 +27,9 @@ class PlayerEngine(private val context: Context) {
     )
     val player: MediaPlayer = MediaPlayer(libVlc)
 
-    /** 当前曲目（供界面查询时长/进度）。 */
     var current: Song? = null
         private set
 
-    /** 联网取到曲目信息后，把队列里那一首换成新对象（界面按 current 显示歌名）。 */
     fun retitle(song: Song) {
         val i = queue.indexOfFirst { it.path == song.path }
         if (i >= 0) queue[i] = song
@@ -50,14 +41,11 @@ class PlayerEngine(private val context: Context) {
     private val queue = ArrayList<Song>()
     private var index = -1
 
-    /** 当前播放模式（界面可切换）。 */
     var mode: PlayMode = PlayMode.REPEAT_LIST
 
-    /** 随机模式下的洗牌顺序（queue 下标的排列）。 */
     private var shuffleOrder: MutableList<Int> = mutableListOf()
     private var shufflePos = -1
 
-    /** 状态变化回调（界面/MediaSession 刷新用）。 */
     var onStateChanged: (() -> Unit)? = null
 
     init {
@@ -132,7 +120,6 @@ class PlayerEngine(private val context: Context) {
         onStateChanged?.invoke()
     }
 
-    /** 用户手动点下一曲：任何模式都前进。 */
     fun next() {
         if (queue.isEmpty()) return
         when (mode) {
@@ -159,7 +146,6 @@ class PlayerEngine(private val context: Context) {
         playCurrent()
     }
 
-    /** 播放自然结束时的推进逻辑（区别于手动切歌）。 */
     private fun autoNext() {
         if (queue.isEmpty()) return
         when (mode) {
@@ -179,7 +165,6 @@ class PlayerEngine(private val context: Context) {
             }
             PlayMode.SEQUENTIAL -> {
                 if (index + 1 < queue.size) { index++; playCurrent() }
-                // 列表末尾：停止，保持最后一曲
             }
         }
     }

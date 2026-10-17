@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">TuneKuo</string>
 
-    <!-- 主界面 -->
     <string name="library_title">音乐库</string>
     <string name="scanning">扫描中…</string>
     <string name="search_hint">搜索歌名 / 歌手 / 专辑</string>
@@ -12,21 +11,17 @@
     <string name="rescan">重新扫描</string>
     <string name="rescan_done">已重新扫描：%1$d 首</string>
 
-    <!-- 播放模式 -->
     <string name="mode_sequential">顺序</string>
     <string name="mode_repeat_list">列表循环</string>
     <string name="mode_repeat_one">单曲循环</string>
     <string name="mode_shuffle">随机</string>
 
-    <!-- 曲库信息 -->
     <string name="unknown_artist">未知艺术家</string>
     <string name="unknown_album">未知专辑</string>
     <string name="local_file">本地文件</string>
 
-    <!-- 歌词页 -->
     <string name="no_lyrics">暂无歌词</string>
 
-    <!-- 设置页 -->
     <string name="settings">设置</string>
     <string name="settings_language">语言</string>
     <string name="settings_feedback">Bug 与更新意见反馈</string>
@@ -34,12 +29,10 @@
     <string name="version_fmt">TuneKuo %1$s</string>
     <string name="feedback_url" translatable="false">https://github.com/nianmenyikuo/TuneKuo/issues/new/choose</string>
 
-    <!-- 语言名称（各语言下都用本语言显示，不翻译） -->
     <string name="lang_zh" translatable="false">汉语</string>
     <string name="lang_en" translatable="false">English</string>
     <string name="lang_ja" translatable="false">日本語</string>
 
-    <!-- 长按歌曲菜单 -->
     <string name="menu_fetch_info">联网获取歌曲信息（含歌词）</string>
     <string name="menu_detail">歌曲详情</string>
     <string name="menu_copy_title">复制歌名</string>
@@ -66,7 +59,6 @@
     <string name="copied">已复制</string>
     <string name="kv_fmt">%1$s：%2$s</string>
 
-    <!-- 通知 -->
     <string name="notif_channel_playback">播放服务</string>
     <string name="notif_ready">就绪</string>
     <string name="notif_prev">上一首</string>

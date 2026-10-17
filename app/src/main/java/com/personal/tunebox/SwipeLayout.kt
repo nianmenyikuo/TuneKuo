@@ -7,12 +7,6 @@ import android.view.View
 import android.widget.FrameLayout
 import kotlin.math.abs
 
-/**
- * 只"观察"水平滑动、不消费触摸事件的容器：
- * - 右滑触发 onSwipeRight，左滑触发 onSwipeLeft；
- * - 子控件（列表滚动、按钮、进度条）照常工作；
- * - 触摸起点落在 [exclude] 上时忽略本次手势（避免拖动进度条被误判成翻页）。
- */
 class SwipeLayout @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -22,7 +16,6 @@ class SwipeLayout @JvmOverloads constructor(
     var onSwipeRight: (() -> Unit)? = null
     var onSwipeLeft: (() -> Unit)? = null
 
-    /** 触摸起点在这个 View 上时不响应翻页手势。 */
     var exclude: View? = null
 
     private var downX = 0f

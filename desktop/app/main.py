@@ -1,9 +1,3 @@
-"""TuneKuo for Windows —— 入口。
-
-用法：
-    TuneKuo.exe                      打开播放器
-    TuneKuo.exe "D:\\music\\a.flac"   直接播放该文件（“默认播放器”关联时系统这样调用）
-"""
 from __future__ import annotations
 
 import os
@@ -13,15 +7,12 @@ from tkinter import messagebox
 
 APP_NAME = "TuneKuo"
 
-
 def _ensure_sys_path() -> None:
     here = os.path.dirname(os.path.abspath(__file__))
     if here not in sys.path:
         sys.path.insert(0, here)
 
-
 def collect_paths(argv) -> list:
-    """挑出命令行里的文件/目录；路径被空格拆散时自动拼回去。"""
     args = [str(a).strip().strip('"') for a in argv]
     out = []
     i = 0
@@ -44,9 +35,7 @@ def collect_paths(argv) -> list:
         i += 1
     return out
 
-
 def run_cli(args) -> "int | None":
-    """无界面模式：--register / --unregister / --status（打包成 exe 后没有控制台，用弹窗显示）。"""
     flags = {a.lower() for a in args if a.startswith("--")}
     if not (flags & {"--register", "--unregister", "--status", "--open-defaults"}):
         return None
@@ -74,15 +63,13 @@ def run_cli(args) -> "int | None":
                "想改回别的播放器：用系统设置里的“默认应用”（Debian 上是 xdg-mime）。")
     if "--register" in flags and n < len(assoc.EXTS) and "--quiet" not in flags:
         assoc.open_default_apps_settings()
-    if "--quiet" in flags:  # 供脚本/自检调用，不弹窗
+    if "--quiet" in flags:  
         _write_report(body + tip, "tunekuo_cli.txt")
         return 0
     messagebox.showinfo(APP_NAME, body + tip)
     return 0
 
-
 def _write_report(text: str, name: str) -> None:
-    """窗口版 exe 没有控制台，把结果落到 %TEMP% 便于查看。"""
     import tempfile
 
     out = os.path.join(tempfile.gettempdir(), name)
@@ -93,14 +80,7 @@ def _write_report(text: str, name: str) -> None:
         pass
     print(text)
 
-
 def run_selftest(paths) -> int:
-    """打包后自检：只验证播放引擎能不能起来，不开界面。
-
-        TuneKuo.exe --selftest "D:\\music\\a.flac"
-
-    结果写到 %TEMP%\\tunekuo_selftest.txt，便于在没有控制台的 exe 上排查。
-    """
     import time
     import traceback
 
@@ -163,7 +143,6 @@ def run_selftest(paths) -> int:
         _write_report("\n".join(report), "tunekuo_selftest.txt")
     return code
 
-
 def main() -> int:
     _ensure_sys_path()
 
@@ -174,11 +153,10 @@ def main() -> int:
     if cli is not None:
         return cli
 
-    import vlcenv  # noqa: F401  必须在 import vlc 之前完成 libvlc 路径配置
+    import vlcenv
 
     paths = collect_paths(sys.argv[1:])
 
-    # 已经在播放：把文件交给那个窗口，自己退出（不开第二个播放器）
     primary = None
     try:
         import instance
@@ -206,7 +184,7 @@ def main() -> int:
             )
             return 2
     else:
-        try:  # Linux/macOS：libvlc 由 python-vlc 去系统里找，这里确认它真能用
+        try:
             import vlc
 
             vlc.libvlc_get_version()
@@ -225,7 +203,7 @@ def main() -> int:
         from ui import TuneKuoUI
 
         app = TuneKuoUI(root, initial_paths=paths)
-    except Exception as e:  # 依赖缺失或初始化失败
+    except Exception as e:
         import traceback
 
         messagebox.showerror(APP_NAME, f"启动失败：\n{e}\n\n{traceback.format_exc()}")
@@ -241,7 +219,6 @@ def main() -> int:
     if primary is not None:
         primary.release()
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

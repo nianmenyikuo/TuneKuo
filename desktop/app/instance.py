@@ -1,7 +1,3 @@
-"""单实例：第二次双击文件时把路径转给已运行的窗口，而不是再开一个播放器。
-
-用本地 TCP 环回端口做判定（不写注册表、不需要命名管道）。
-"""
 from __future__ import annotations
 
 import json
@@ -14,14 +10,12 @@ HOST = "127.0.0.1"
 PORT = 45137
 TIMEOUT = 0.6
 
-
 class SingleInstance:
     def __init__(self, on_paths: Callable[[List[str]], None]):
         self.on_paths = on_paths
         self._sock: Optional[socket.socket] = None
         self._stop = False
 
-    # 尝试成为主实例；成功返回 True
     def acquire(self) -> bool:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
@@ -81,9 +75,7 @@ class SingleInstance:
                 pass
             self._sock = None
 
-
 def send_to_primary(paths: List[str]) -> bool:
-    """把文件路径交给已运行的主实例；没有主实例时返回 False。"""
     payload = json.dumps({"paths": paths, "pid": os.getpid()}, ensure_ascii=False) + "\n"
     try:
         s = socket.create_connection((HOST, PORT), timeout=TIMEOUT)

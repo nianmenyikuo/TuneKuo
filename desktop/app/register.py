@@ -11,8 +11,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import assoc  # noqa: E402
-
+import assoc
 
 def main() -> int:
     action = (sys.argv[1] if len(sys.argv) > 1 else "status").lower()
@@ -41,7 +40,6 @@ def main() -> int:
         return 0
     print(__doc__)
     return 1
-
 
 if __name__ == "__main__":
     sys.exit(main())

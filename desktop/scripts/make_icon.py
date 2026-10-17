@@ -1,11 +1,3 @@
-"""把一张 PNG 转成各平台的图标（Windows .ico / 通用 .png / 安卓 mipmap）。
-
-    python scripts/make_icon.py                 # assets/icon-source.png -> app/assets/icon.ico + icon.png
-    python scripts/make_icon.py --android       # 顺便写安卓 res 的五档 mipmap
-    python scripts/make_icon.py 别的源图.png    # 指定源图
-
-前提：装了 Pillow（requirements.txt 里有）。
-"""
 from __future__ import annotations
 
 import os
@@ -21,14 +13,11 @@ SIZES = [256, 128, 96, 64, 48, 32, 24, 16]
 ANDROID = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
 ANDROID_RES = os.path.normpath(os.path.join(ROOT, "..", "app", "src", "main", "res"))
 
-
 def square(img: Image.Image, side: int) -> Image.Image:
-    """居中裁成正方形，再缩放到 side×side。"""
     w, h = img.size
     s = min(w, h)
     img = img.crop(((w - s) // 2, (h - s) // 2, (w - s) // 2 + s, (h - s) // 2 + s))
     return img if s == side else img.resize((side, side), Image.LANCZOS)
-
 
 def main() -> int:
     argv = sys.argv[1:]
@@ -54,7 +43,6 @@ def main() -> int:
             master.resize((side, side), Image.LANCZOS).save(out, format="PNG")
             print(f"已生成 {out}  ({os.path.getsize(out)} 字节, {side}x{side})")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

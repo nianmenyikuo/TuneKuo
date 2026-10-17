@@ -1,5 +1,4 @@
 ﻿# 下载 64 位 VLC 运行库到 vendor\vlc64（打包时会一起复制到 dist\TuneKuo\vlc）
-# 用法: pwsh -File scripts\fetch_vlc.ps1
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
@@ -37,7 +36,6 @@ New-Item -ItemType Directory -Path (Split-Path $dest) -Force | Out-Null
 if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
 Move-Item $inner.FullName $dest
 
-# 只保留播放必需的部分，省下 60MB 左右
 foreach ($d in 'locale', 'skins', 'hrtfs', 'msi', 'lua') {
   $p = Join-Path $dest $d
   if (Test-Path $p) { Remove-Item $p -Recurse -Force }

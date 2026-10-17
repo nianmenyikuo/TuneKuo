@@ -1,6 +1,5 @@
 name: Linux 安装包
 
-# 打 tag（v1.0.4、v1.0.5 …）时自动出 deb 与 AppImage；也可以在 Actions 页手动跑。
 on:
   push:
     tags: ["v*"]
@@ -63,8 +62,6 @@ jobs:
             python3-tk python3-vlc vlc-plugin-base python3-pip xvfb
           python3 -m pip install --user pyinstaller
       - name: 打 AppImage
-        # 显式指定输出目录：脚本默认写在 desktop/dist-linux，而 workflow 里的路径
-        # （chmod / 运行 / 上传）都是相对仓库根目录算的，跟 deb 那一步保持一致。
         run: bash desktop/linux/make_appimage.sh dist-linux
       - name: 解包看看自带的那份 libvlc 真在里头
         run: |

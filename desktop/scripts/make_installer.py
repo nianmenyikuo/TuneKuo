@@ -1,11 +1,3 @@
-"""生成 TuneKuo 的 Inno Setup 安装脚本并编译成单文件安装包。
-
-    python scripts\\make_installer.py            # 生成 .iss 并编译
-    python scripts\\make_installer.py --iss-only # 只生成 installer\\TuneKuo.iss
-
-产物：dist-installer\\TuneKuo-Setup-<版本>.exe
-注册表部分由 app\\assoc.py 的 EXTS / PROGID 生成，避免两处清单不一致。
-"""
 from __future__ import annotations
 
 import os
@@ -15,8 +7,8 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "app"))
 
-import assoc  # noqa: E402
-import version as app_version  # noqa: E402
+import assoc
+import version as app_version
 
 APP_NAME = app_version.APP_NAME
 APP_VERSION = app_version.VERSION
@@ -35,7 +27,6 @@ ISCC_CANDIDATES = [
     r"C:\Program Files\Inno Setup 6\ISCC.exe",
 ]
 
-
 def find_iscc() -> str:
     for p in ISCC_CANDIDATES:
         if p and os.path.isfile(p):
@@ -46,11 +37,7 @@ def find_iscc() -> str:
             return cand
     return ""
 
-
 def build_iss() -> str:
-    """拼出 .iss 文本（用绝对路径，避免编译时相对路径解析到别处）。"""
-    # Inno 里字符串要用引号包起来、内部的引号再翻倍，
-    # 所以最终的 ValueData 长这样： """{app}\TuneKuo.exe"" ""%1"""
     cmd = '"""' + os.path.join("{app}", APP_EXE) + '"" ""%1"""'
     L: list = []
     add = L.append
@@ -76,7 +63,7 @@ def build_iss() -> str:
     add("SolidCompression=yes")
     add("WizardStyle=modern")
     add("PrivilegesRequired=admin")
-    add("PrivilegesRequiredOverridesAllowed=dialog")  # 向导里可选"所有用户 / 仅我"
+    add("PrivilegesRequiredOverridesAllowed=dialog")  
     add("ArchitecturesAllowed=x64compatible")
     add("ArchitecturesInstallIn64BitMode=x64compatible")
     add("MinVersion=10.0")
@@ -135,15 +122,11 @@ def build_iss() -> str:
             + '\\SupportedTypes"; ValueType: string; ValueName: "' + ext
             + '"; ValueData: ""; Tasks: assoc; Flags: uninsdeletevalue')
     for ext in assoc.EXTS:
-        # 注意：不能用 ValueType: none —— Inno 6.7 会静默跳过，值根本不会写进去
-        # （已用 probe 验证：none 两种写法都不生成，binary 正常生成）。
-        # OpenWithProgids 只看值名，数据无所谓，这里写一个字节的 0。
         add('Root: HKA; Subkey: "Software\\Classes\\' + ext + '\\OpenWithProgids"; '
             'ValueType: binary; ValueName: "' + PROGID + '"; ValueData: "00"; Tasks: assoc; '
             "Flags: uninsdeletevalue")
     add("")
     add("; ---- 4) 系统“默认应用”里可选中（Windows 不允许程序静默抢默认，只能让用户点一下）----")
-    # 这一行只为了让卸载时能把空的 Software\TuneKuo 一起删掉（uninsdeletekeyifempty）
     add('Root: HKA; Subkey: "Software\\' + APP_NAME + '"; Flags: uninsdeletekeyifempty; '
         "Tasks: assoc")
     add('Root: HKA; Subkey: "Software\\' + APP_NAME + '\\Capabilities"; ValueType: string; '
@@ -167,7 +150,6 @@ def build_iss() -> str:
         "Flags: nowait postinstall skipifsilent")
     add("")
     return "\n".join(L) + "\n"
-
 
 def main() -> int:
     if not os.path.isfile(os.path.join(BUILD_DIR, APP_EXE)):
@@ -203,7 +185,6 @@ def main() -> int:
     if os.path.isfile(out):
         print(f"安装包完成：{out}（{os.path.getsize(out) / 1024 / 1024:.1f} MB）")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -19,10 +19,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
-/**
- * 后台播放服务：持有 PlayerEngine 单例 + MediaSession。
- * MediaSession 让锁屏/通知栏/蓝牙线控显示歌曲信息、进度条和播放控制。
- */
 class PlaybackService : Service() {
 
     override fun attachBaseContext(newBase: Context) {
@@ -52,7 +48,7 @@ class PlaybackService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var myEngine: PlayerEngine
     private lateinit var mySession: MediaSessionCompat
-    private var artLoadedFor: String? = null   // 已加载封面/歌词的歌曲路径
+    private var artLoadedFor: String? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -82,7 +78,6 @@ class PlaybackService : Service() {
         })
         session = mySession
 
-        // 引擎状态变化 → 更新 MediaSession 与通知
         myEngine.onStateChanged = { updateSession() }
     }
 
@@ -106,12 +101,10 @@ class PlaybackService : Service() {
         super.onDestroy()
     }
 
-    /** 把当前曲目信息+播放状态写入 MediaSession（锁屏/通知栏读取这里）。 */
     fun updateSession() {
         val e = myEngine
         val s = e.current ?: return
 
-        // 后台加载封面+歌词（服务侧，保证后台播放时锁屏也有封面）
         if (s.path != artLoadedFor) {
             artLoadedFor = s.path
             scope.launch {
@@ -119,7 +112,7 @@ class PlaybackService : Service() {
                 if (myEngine.current?.path == s.path) {
                     MediaArtHolder.cover = r.cover
                     MediaArtHolder.lyrics = r.lyrics
-                    updateSession()   // 封面就绪后刷新一次元数据
+                    updateSession()
                 }
             }
         }
@@ -131,7 +124,6 @@ class PlaybackService : Service() {
                 .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, s.album)
                 .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, e.duration)
                 .apply {
-                    // 锁屏/通知栏大封面
                     MediaArtHolder.cover?.let {
                         putBitmap(MediaMetadataCompat.METADATA_KEY_ALBUM_ART, it)
                     }
@@ -155,7 +147,6 @@ class PlaybackService : Service() {
         )
         mySession.isActive = true
 
-        // 通知栏媒体样式（锁屏显示同源）
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL, getString(R.string.notif_channel_playback), NotificationManager.IMPORTANCE_LOW)

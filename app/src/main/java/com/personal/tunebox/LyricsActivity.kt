@@ -11,10 +11,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
-/**
- * 全屏歌词页：封面大图 + 歌名 + 逐行歌词，当前行高亮并自动滚动到屏幕中央。
- * 从主界面底部小箭头进入。
- */
 class LyricsActivity : AppCompatActivity() {
 
     override fun attachBaseContext(newBase: Context) {
@@ -26,7 +22,7 @@ class LyricsActivity : AppCompatActivity() {
     private lateinit var scroll: ScrollView
     private lateinit var ivCover: ImageView
     private var currentLine = -1
-    private var timed = false   // 歌词是否有时间轴（纯文本歌词不做高亮滚动）
+    private var timed = false
 
     private val tick = object : Runnable {
         override fun run() {
@@ -34,9 +30,7 @@ class LyricsActivity : AppCompatActivity() {
             val song = e.current ?: return
             val pos = e.position
 
-            // 纯文本歌词（无时间轴）不做高亮滚动
             if (!timed) return
-            // 找当前行：最后一个 timeMs <= pos 的行
             val lines = MediaArtHolder.lyrics
             var idx = -1
             for (i in lines.indices) {
@@ -79,7 +73,6 @@ class LyricsActivity : AppCompatActivity() {
             setPadding(48, 64, 48, 48)
         }
 
-        // 封面
         ivCover = ImageView(this).apply {
             adjustViewBounds = true
             maxHeight = 720
@@ -90,7 +83,6 @@ class LyricsActivity : AppCompatActivity() {
             topMargin = 0; bottomMargin = 32
         })
 
-        // 歌名
         root.addView(TextView(this).apply {
             text = song?.title ?: getString(R.string.not_playing)
             setTextColor(0xFFFFFFFF.toInt())
@@ -102,7 +94,6 @@ class LyricsActivity : AppCompatActivity() {
             textSize = 13f
         })
 
-        // 歌词滚动区
         scroll = ScrollView(this)
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val list = if (lyrics.isEmpty())
@@ -124,7 +115,6 @@ class LyricsActivity : AppCompatActivity() {
         setContentView(root)
         height = resources.displayMetrics.heightPixels
 
-        // 点击封面/空白处关闭
         root.setOnClickListener { finish() }
         ivCover.setOnClickListener { finish() }
     }
@@ -134,7 +124,6 @@ class LyricsActivity : AppCompatActivity() {
     override fun onBackPressed() { finish() }
 }
 
-/** 进程级缓存：主界面加载完封面/歌词后传给歌词页。 */
 object MediaArtHolder {
     var cover: Bitmap? = null
     var lyrics: List<LyricLine> = emptyList()

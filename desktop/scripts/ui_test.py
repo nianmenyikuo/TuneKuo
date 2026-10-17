@@ -1,7 +1,3 @@
-"""界面自检（开发者用）：真的把窗口建起来，加载一个临时音频，跑几秒事件循环。
-
-    python scripts/ui_test.py
-"""
 from __future__ import annotations
 
 import json
@@ -16,15 +12,14 @@ import webbrowser
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 自检不碰用户真正的配置目录（Windows %APPDATA% / Linux ~/.config），另起一个临时目录
 _STATE_HOME = tempfile.mkdtemp(prefix="tunekuo_ui_state_")
 os.environ["APPDATA"] = _STATE_HOME
 os.environ["XDG_CONFIG_HOME"] = _STATE_HOME
 
 sys.path.insert(0, os.path.join(ROOT, "app"))
 
-import paths  # noqa: E402
-import vlcenv  # noqa: E402
+import paths
+import vlcenv
 
 if os.name == "nt":
     if vlcenv.LIB is None:
@@ -32,16 +27,15 @@ if os.name == "nt":
         sys.exit(1)
 else:
     try:
-        import vlc  # noqa: F401
-    except Exception as exc:  # Linux/macOS 上 libvlc 由 python-vlc 自己去系统里找
+        import vlc
+    except Exception as exc:
         print("失败：python-vlc / libvlc 不可用：", exc)
         sys.exit(1)
 
-import tkinter as tk  # noqa: E402
+import tkinter as tk
 
-from ui import TuneKuoUI  # noqa: E402
-from version import VERSION  # noqa: E402
-
+from ui import TuneKuoUI
+from version import VERSION
 
 def make_wav(path: str, seconds: float = 6.0, rate: int = 44100) -> None:
     with wave.open(path, "wb") as w:
@@ -51,7 +45,6 @@ def make_wav(path: str, seconds: float = 6.0, rate: int = 44100) -> None:
         w.writeframes(b"".join(
             struct.pack("<hh", (v := int(9000 * math.sin(2 * math.pi * 330 * i / rate))), v)
             for i in range(int(rate * seconds))))
-
 
 tmp = tempfile.mkdtemp(prefix="tunekuo_ui_")
 wav = os.path.join(tmp, "测试歌曲.wav")
@@ -63,19 +56,16 @@ root = tk.Tk()
 app = TuneKuoUI(root, initial_paths=[wav])
 errors = []
 
-
 def pump(seconds: float) -> None:
     t0 = time.time()
     while time.time() - t0 < seconds:
         root.update()
         time.sleep(0.03)
 
-
 pump(1.5)
 rows = app.tree.get_children()
 print("列表行数    :", len(rows))
 
-# 回归检查：列表里的时长必须真的显示出来（曾经全是 --:--）
 dur_text = ""
 deadline = time.time() + 5
 while time.time() < deadline:
@@ -95,7 +85,6 @@ print("标题列      :", app.tree.item(rows[0], "values") if rows else None)
 print("状态栏      :", app.lb_status.cget("text"))
 print("正在播放    :", app.lb_now.cget("text"), "|", app.lb_now_sub.cget("text"))
 
-# 搜索过滤
 app.var_search.set("不存在")
 pump(0.3)
 print("搜索过滤后  :", len(app.tree.get_children()))
@@ -104,7 +93,6 @@ pump(0.3)
 print("恢复过滤后  :", len(app.tree.get_children()))
 app.var_search.set("")
 
-# ---------------------------------------------------------------- 右键菜单 / 歌曲信息
 m = app._row_menu(0)
 labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1) if m.type(i) == "command"]
 print("右键菜单    :", labels)
@@ -126,9 +114,7 @@ if os.path.normcase(clip) != os.path.normcase(app.player.tracks[0].path):
 if app.lb_status.cget("text") != "已复制到剪贴板":
     errors.append("复制后状态栏不对: " + app.lb_status.cget("text"))
 
-
 class _FakeBox:
-    """把 messagebox 换掉：弹窗是模态的，自检里只记录不真的弹。"""
 
     def __init__(self) -> None:
         self.calls = []
@@ -139,9 +125,8 @@ class _FakeBox:
     def showwarning(self, title, msg, **kw) -> None:
         self.calls.append(("warn", title, msg))
 
-
-import online as online_mod  # noqa: E402
-import ui as ui_mod  # noqa: E402
+import online as online_mod
+import ui as ui_mod
 
 fake = _FakeBox()
 real_box = ui_mod.messagebox
@@ -152,7 +137,6 @@ print("详情弹窗    :", fake.calls[-1][1], "|", fake.calls[-1][2].replace("\n
 if fake.calls[-1][0] != "info" or "路径" not in fake.calls[-1][2]:
     errors.append("歌曲详情弹窗内容不对")
 
-# 联网获取：online.fetch 换成桩，只验证「后台线程 -> 事件队列 -> 界面生效」这条链路
 real_fetch = online_mod.fetch
 online_mod.fetch = lambda t: online_mod.Info(
     "晴天", "周杰伦", "叶惠美", "2003", "Mandopop", "iTunes", "LRCLIB",
@@ -174,12 +158,11 @@ if len(fake.calls) < 2 or fake.calls[-1][0] != "info":
 elif "来源" not in fake.calls[-1][2]:
     errors.append("信息框里没有来源行")
 
-row = app.tree.item("0", "values")            # 取到的信息要自动替换列表里那一行
+row = app.tree.item("0", "values")            
 print("列表已替换  :", row)
 if row[0] != "晴天" or row[1] != "周杰伦":
     errors.append(f"联网获取后列表没替换: {row}")
 
-# 获取失败要报错而不是静默
 online_mod.fetch = lambda t: None
 app.fetch_online(0)
 deadline = time.time() + 5
@@ -191,7 +174,6 @@ if len(fake.calls) < 3 or fake.calls[-1][0] != "warn":
 
 ui_mod.messagebox = real_box
 
-# 播放 + 歌词跟随
 app.player.play_index(0)
 pump(3.0)
 print("播放状态    :", "播放中" if app.player.is_playing() else "未播放",
@@ -199,7 +181,6 @@ print("播放状态    :", "播放中" if app.player.is_playing() else "未播�
 print("歌词行数    :", len(app.lrc_lines), "| 当前高亮行", app.current_lyric)
 print("播放按钮    :", repr(app.btn_play.cget("text")), "| 模式", app.btn_mode.cget("text"))
 
-# 模式切换 / 音量 / 静音
 for _ in range(3):
     app.cycle_mode()
 print("三连切模式  :", app.btn_mode.cget("text"))
@@ -212,14 +193,12 @@ print("静音后音量  :", app.player.get_volume())
 app.toggle_mute()
 pump(0.2)
 
-# 暂停 / 继续
 app.toggle_play()
 pump(0.6)
 print("暂停后再切  :", "播放中" if app.player.is_playing() else "已暂停")
 app.player.stop()
 pump(0.4)
 
-# ---------------------------------------------------------------- 设置页 / 拖动切页 / 语言热切换
 app.player.play_index(0)
 pump(2.0)
 print("\n重新播放    :", "播放中" if app.player.is_playing() else "未播放")
@@ -238,7 +217,6 @@ if app.offset != 1.0:
 if app.lb_version.cget("text") != f"TuneKuo {VERSION}":
     errors.append("版本号不对: " + app.lb_version.cget("text"))
 
-# 设置页内容从上到下：标题 -> 语言 -> 反馈链接 -> 版本号
 order = [("标题", app.lb_settings_title.winfo_rooty()),
          ("语言", app.lb_lang_group.winfo_rooty()),
          ("反馈", app.lb_feedback.winfo_rooty()),
@@ -254,27 +232,24 @@ for code, lb in app.lang_labels.items():
     if not lb.bind("<Button-1>"):
         errors.append(f"{code} 选项没绑点击事件")
 
-app.on_escape()          # Esc 从设置页返回
+app.on_escape()
 pump(1.0)
 print("Esc 返回后  :", round(app.offset, 2), "(0=主界面)")
 if app.offset != 0.0:
     errors.append(f"Esc 没有回到主界面: offset={app.offset}")
 
-app.root.update()                       # 拖动断言按真实窗口宽度算
+app.root.update()
 width = max(app.root.winfo_width(), 600)
 print("窗口宽度    :", width)
 
-
 class _Ev:
-    """模拟鼠标事件：只在 x_root 上左右移动。"""
 
     def __init__(self, x):
         self.x_root = x
         self.y_root = 100
         self.widget = app.tree
 
-
-app._drag_press(_Ev(width - 40))        # 主界面上按住鼠标向左拖 → 设置页
+app._drag_press(_Ev(width - 40))
 app._drag_motion(_Ev(width // 2))
 mid = app.offset
 print("拖动跟手    :", round(mid, 2), "(0<offset<1 说明页面跟着鼠标走)")
@@ -287,7 +262,7 @@ print("向左拖动后  :", round(app.offset, 2), "(1=设置页)")
 if app.offset != 1.0:
     errors.append(f"向左拖动没有进入设置页: offset={app.offset}")
 
-app._drag_press(_Ev(40))                # 设置页上向右拖 → 主界面
+app._drag_press(_Ev(40))
 app._drag_motion(_Ev(width - 40))
 app._drag_release(_Ev(width - 40))
 pump(1.2)
@@ -295,8 +270,6 @@ print("向右拖动后  :", round(app.offset, 2), "(0=主界面)")
 if app.offset != 0.0:
     errors.append(f"向右拖动没有回到主界面: offset={app.offset}")
 
-# 语言热切换：en / ja 各取几个控件断言，再切回 zh（全程播放不能被打断）
-# 样例音频只有 3 秒，所以这一步的 pump 时间要短，判播放状态才准
 app.show_settings()
 pump(0.5)
 app.player.play_index(0)
@@ -341,7 +314,6 @@ print("切回 zh     :", back)
 if back != ("设置", "标题", "设置", "← 返回"):
     errors.append(f"切回中文失败: {back}")
 
-# 回主界面：列表还在
 app.show_main()
 pump(0.3)
 print("回主界面    :", round(app.offset, 2), "| 列表", len(app.tree.get_children()), "行")
@@ -354,11 +326,10 @@ try:
     print("state.json  :", sorted(saved))
     if saved.get("lang") != "zh":
         errors.append(f"state.json 没记住 lang: {saved.get('lang')!r}")
-except Exception as exc:                                   # noqa: BLE001
+except Exception as exc:
     errors.append(f"读 state.json 失败: {exc}")
 
-# 反馈链接：拦住 webbrowser，确认点的是那个 issue 页面（不真开浏览器）
-import version  # noqa: E402
+import version
 
 if not app.lb_feedback.bind("<Button-1>"):
     errors.append("反馈链接没有绑定点击事件")
@@ -375,11 +346,10 @@ if opened != [version.FEEDBACK_URL]:
 if version.FEEDBACK_URL != "https://github.com/nianmenyikuo/TuneKuo/issues/new/choose":
     errors.append(f"反馈链接地址不对: {version.FEEDBACK_URL}")
 
-# 启动读回语言：state.json 里写 ja，再走一次 load_state，界面就该是日文
 with open(STATE_PATH, encoding="utf-8") as fp:
     st = json.load(fp)
 st["lang"] = "ja"
-st["zz_probe"] = 123          # 假装是别人写的键，存的时候不能丢
+st["zz_probe"] = 123          
 with open(STATE_PATH, "w", encoding="utf-8") as fp:
     json.dump(st, fp, ensure_ascii=False)
 app.load_state()
