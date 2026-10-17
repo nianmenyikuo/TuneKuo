@@ -68,8 +68,8 @@ jobs:
         run: bash desktop/linux/make_appimage.sh dist-linux
       - name: 解包看看自带的那份 libvlc 真在里头
         run: |
-          ./dist-linux/TuneKuo-*-x86_64.AppImage --appimage-extract 'usr/bin/_internal/vlc/*'
-          ls -l squashfs-root/usr/bin/_internal/vlc/ | head -8
+          ./dist-linux/TuneKuo-*-x86_64.AppImage --appimage-extract > /dev/null
+          ls -l squashfs-root/usr/bin/_internal/vlc/libvlc.so.5 squashfs-root/usr/bin/_internal/vlc/libvlccore.so.9
           test -f squashfs-root/usr/bin/_internal/vlc/libvlc.so.5
           test -f squashfs-root/usr/bin/_internal/vlc/libvlccore.so.9
           test -d squashfs-root/usr/bin/_internal/vlc/plugins

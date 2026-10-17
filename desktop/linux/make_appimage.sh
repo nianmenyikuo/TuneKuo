@@ -42,17 +42,19 @@ cp -a "$ROOT/dist/$APP/." "$WORK/$APP/usr/bin/"
 
 VLCDIR="$WORK/$APP/usr/bin/_internal/vlc"          # vlcenv.posix_setup() 认这个位置
 mkdir -p "$VLCDIR"
-cp -a "$LIBVLC"/libvlc.so* "$LIBVLC"/libvlccore.so* "$VLCDIR"/ 2>/dev/null || true
-cp -a "$PLUGINS" "$VLCDIR/plugins"
+# -L：把符号链接解成真文件。libvlc.so.5 / libvlccore.so.9 在系统里都是符号链接，
+# 打成 AppImage 后解包时出现过「could not create symlink」，索性不留链接，直接拷实体（才 1MB 出头）。
+cp -aL "$LIBVLC"/libvlc.so* "$LIBVLC"/libvlccore.so* "$VLCDIR"/ 2>/dev/null || true
+cp -aL "$PLUGINS" "$VLCDIR/plugins"
 
-# 拷进来的必须是真的、能解引用的文件（libvlc.so.5 常是符号链接，漏拷目标就成了悬空链接，
-# 那样在装了 VLC 的机器上照样能跑，用户机器上却起不来 —— 所以在打包前就把这件事钉死）
+# 拷进来的必须是真文件（少了 libvlc 在装了 VLC 的机器上照样能跑，用户机器上却起不来，
+# 所以在打包前就把这件事钉死）
 [ -d "$VLCDIR/plugins" ] || die "VLC 插件目录没拷进去"
-[ -e "$VLCDIR/libvlc.so.5" ] || die "libvlc.so.5 没拷进去或是悬空符号链接"
-[ -e "$VLCDIR/libvlccore.so.9" ] || die "libvlccore.so.9 没拷进去或是悬空符号链接"
+[ -f "$VLCDIR/libvlc.so.5" ] || die "libvlc.so.5 不是真文件（没拷进来？）"
+[ -f "$VLCDIR/libvlccore.so.9" ] || die "libvlccore.so.9 不是真文件（没拷进来？）"
 VLCMB=$(du -sm "$VLCDIR" | cut -f1)
 [ "$VLCMB" -ge 5 ] || die "内置的 vlc 只有 ${VLCMB}MB，八成没拷全"
-echo "   内置 vlc: ${VLCMB}MB（$(find "$VLCDIR" -type f | wc -l) 个文件）"
+echo "   内置 vlc: ${VLCMB}MB（$(find "$VLCDIR" -type f | wc -l) 个文件，$(find "$VLCDIR" -type l | wc -l) 个符号链接）"
 
 "${PYTHON:-python3}" "$ROOT/scripts/make_deb.py" --desktop > "$WORK/$APP/$APP.desktop"
 sed -i "s|^Exec=.*|Exec=$APP|" "$WORK/$APP/$APP.desktop"
