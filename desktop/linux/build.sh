@@ -17,10 +17,12 @@ if [ ! -f app/assets/icon.png ]; then
   "$PY" scripts/make_icon.py
 fi
 
+# 注意：--add-data / --icon 的源路径要写绝对路径 —— spec 文件落在 build/ 里，
+# 相对路径会以 spec 所在目录为基准，PyInstaller 会报 "Unable to find .../build/app/assets"。
 "$PY" -m PyInstaller --noconfirm --clean --windowed --onedir \
   --name TuneKuo \
-  --icon app/assets/icon.png \
-  --add-data "app/assets:assets" \
+  --icon "$ROOT/app/assets/icon.png" \
+  --add-data "$ROOT/app/assets:assets" \
   --hidden-import vlc --hidden-import vlcenv --hidden-import mediakeys \
   --hidden-import instance --hidden-import paths \
   --hidden-import PIL.Image --hidden-import PIL.ImageTk \

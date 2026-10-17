@@ -94,12 +94,14 @@ class Player:
         except Exception:
             pass
 
-    def _on_end(self, event) -> None:
+    # 下面两个回调不能带类型注解：Ubuntu 22.04 自带的 python3-vlc（3.0.1614）在
+    # event_attach 里用的是 inspect.getargspec()，碰到带注解的函数直接抛 ValueError。
+    def _on_end(self, event):
         # 只置标志，真正的切歌由 UI 线程轮询后执行（避免在 VLC 线程里操作播放器）
         self._end_pending = True
         self._fire("ended")
 
-    def _on_length(self, event) -> None:
+    def _on_length(self, event):
         try:
             ms = int(event.u)
         except Exception:

@@ -91,8 +91,23 @@ def payload() -> list[tuple[str, bytes, int]]:
 
 
 def tar_gz(entries: list[tuple[str, bytes, int]]) -> bytes:
+    """tar.gz。父目录必须显式写进包里 —— dpkg 不会替我们建目录，少了会报
+    `unable to create '/usr/share/doc/tunekuo/copyright.dpkg-new': No such file or directory`。"""
+    dirs: dict[str, int] = {}
+    for name, _, _ in entries:
+        parts = name.split("/")[1:-1]              # "./usr/bin/tunekuo" -> ["usr", "bin"]
+        for i in range(1, len(parts) + 1):
+            dirs.setdefault("./" + "/".join(parts[:i]) + "/", 0o755)
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz", format=tarfile.GNU_FORMAT) as tf:
+        for name in sorted(dirs):
+            info = tarfile.TarInfo(name)
+            info.type = tarfile.DIRTYPE
+            info.mode = dirs[name]
+            info.mtime = int(time.time())
+            info.uid = info.gid = 0
+            info.uname = info.gname = "root"
+            tf.addfile(info)
         for name, blob, mode in entries:
             info = tarfile.TarInfo(name)
             info.size = len(blob)
@@ -179,6 +194,8 @@ def main() -> int:
     assert f".{LIBDIR}/main.py" in names and f".{LIBDIR}/paths.py" in names
     assert "./usr/bin/tunekuo" in names
     assert f"./usr/share/icons/hicolor/256x256/apps/{PKG}.png" in names
+    assert "./usr/share/doc/tunekuo" in names           # 目录条目：少了 dpkg 装不上
+    assert "./usr/share/tunekuo/assets" in names        # （tarfile 会去掉目录名末尾的 /）
 
     print(f"输出      : {path}")
     print(f"大小      : {len(deb):,} B")
