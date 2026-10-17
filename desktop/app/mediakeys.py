@@ -6,11 +6,19 @@
 from __future__ import annotations
 
 import ctypes
+import os
 import threading
-from ctypes import wintypes
 from typing import Callable, Optional
 
-user32 = ctypes.windll.user32
+# 只有 Windows 有 RegisterHotKey；Linux/macOS 上整个功能自动关闭（available() 返回 False）
+ON_WINDOWS = os.name == "nt"
+if ON_WINDOWS:
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+else:
+    wintypes = None
+    user32 = None
 
 WM_HOTKEY = 0x0312
 MOD_NOREPEAT = 0x4000
@@ -81,4 +89,4 @@ class MediaKeys(threading.Thread):
 
 
 def available() -> bool:
-    return hasattr(ctypes, "windll")
+    return ON_WINDOWS

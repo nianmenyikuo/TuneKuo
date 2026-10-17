@@ -13,6 +13,7 @@ from typing import List, Optional
 
 import assoc
 import online
+import paths
 from i18n import LANGS, current_language, set_language, t as tr
 from library import MetaLoader, default_roots, scan_paths
 from metadata import parse_lrc
@@ -41,20 +42,30 @@ GREEN = "#4ECB71"
 UI_FONT = "Microsoft YaHei UI"
 ICON_FONT = "Segoe MDL2 Assets"
 
-GLYPH_PLAY = "\uE768"
-GLYPH_PAUSE = "\uE769"
-GLYPH_PREV = "\uE892"
-GLYPH_NEXT = "\uE893"
-GLYPH_VOL = "\uE767"
-GLYPH_MUTE = "\uE74F"
-GLYPH_MUSIC = "\uE8D6"
+# 图标字形：Windows 用 Segoe MDL2 的私有区码；其它平台没有这套字体，用普通符号代替
+# （_pick_fonts() 会在 Linux 上把字体换成系统里真有的那一个）
+if os.name == "nt":
+    GLYPH_PLAY = "\uE768"
+    GLYPH_PAUSE = "\uE769"
+    GLYPH_PREV = "\uE892"
+    GLYPH_NEXT = "\uE893"
+    GLYPH_VOL = "\uE767"
+    GLYPH_MUTE = "\uE74F"
+    GLYPH_MUSIC = "\uE8D6"
+    GLYPH_SEARCH = "\uE721"
+else:
+    GLYPH_PLAY = "▶"
+    GLYPH_PAUSE = "▮▮"
+    GLYPH_PREV = "◀◀"
+    GLYPH_NEXT = "▶▶"
+    GLYPH_VOL = "♪"
+    GLYPH_MUTE = "✕"
+    GLYPH_MUSIC = "♪"
+    GLYPH_SEARCH = ""
 
 
 def state_dir() -> str:
-    base = os.environ.get("APPDATA") or os.path.expanduser("~")
-    d = os.path.join(base, "TuneKuo")
-    os.makedirs(d, exist_ok=True)
-    return d
+    return paths.config_dir()
 
 
 STATE_FILE = os.path.join(state_dir(), "state.json")
@@ -74,12 +85,29 @@ def human_size(n: int) -> str:
 
 
 def assets_dir() -> str:
-    here = os.path.dirname(os.path.abspath(__file__))
-    for cand in (os.path.join(here, "assets"),
-                 os.path.join(os.path.dirname(here), "assets")):
-        if os.path.isdir(cand):
-            return cand
-    return here
+    return paths.assets_dir()
+
+
+def _pick_fonts() -> None:
+    """挑本机真有的界面字体（Linux 上既没有微软雅黑，也没有 Segoe MDL2）。"""
+    global UI_FONT, ICON_FONT
+    if os.name == "nt":
+        return
+    try:
+        from tkinter import font as tkfont
+
+        families = set(tkfont.families())
+    except Exception:
+        return
+    for name in ("Noto Sans CJK SC", "Source Han Sans SC", "Noto Sans SC",
+                 "WenQuanYi Micro Hei", "Noto Sans", "DejaVu Sans"):
+        if name in families:
+            UI_FONT = name
+            break
+    for name in ("DejaVu Sans", "Noto Sans", "FreeSans", UI_FONT):
+        if name in families:
+            ICON_FONT = name
+            break
 
 
 class TuneKuoUI:
@@ -98,6 +126,7 @@ class TuneKuoUI:
         self.player = Player(on_event=self._vlc_event)
         self.loader = MetaLoader(on_loaded=self._meta_loaded)
 
+        _pick_fonts()
         self._build_style()
         self._build_ui()
 
@@ -159,10 +188,13 @@ class TuneKuoUI:
         r.title("TuneKuo")
         r.geometry("1100x720")
         r.minsize(880, 560)
-        icon = os.path.join(assets_dir(), "icon.ico")
+        icon = os.path.join(assets_dir(), "icon.ico" if os.name == "nt" else "icon.png")
         if os.path.isfile(icon):
             try:
-                r.iconbitmap(icon)
+                if os.name == "nt":
+                    r.iconbitmap(icon)
+                else:
+                    r.iconphoto(True, tk.PhotoImage(file=icon))
             except Exception:
                 pass
 
@@ -213,7 +245,9 @@ class TuneKuoUI:
         self._placeholder = False
         ent.bind("<FocusIn>", self._search_focus_in, add="+")
         ent.bind("<FocusOut>", self._search_focus_out, add="+")
-        tk.Label(right_box, text="\uE721", bg=BG, fg=FG_DIM, font=(ICON_FONT, 12)).pack(side="right", padx=(0, 6))
+        if GLYPH_SEARCH:
+            tk.Label(right_box, text=GLYPH_SEARCH, bg=BG, fg=FG_DIM,
+                     font=(ICON_FONT, 12)).pack(side="right", padx=(0, 6))
 
         # ---- 主体：左列表 + 右封面/歌词
         body = tk.Frame(main, bg=BG)

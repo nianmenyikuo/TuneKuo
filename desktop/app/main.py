@@ -65,9 +65,13 @@ def run_cli(args) -> "int | None":
                  + ("   <= TuneKuo" if assoc.is_default_for(e) else "") for e in assoc.EXTS]
         body = "\n".join(lines)
     n = assoc.default_count()
-    tip = (f"\n\n当前 {n} / {len(assoc.EXTS)} 种格式的默认程序是 TuneKuo。\n"
-           "Windows 不允许程序静默抢占默认程序：如需全部生效，"
-           "请在“设置 → 应用 → 默认应用”的音乐播放器一项选择 TuneKuo。")
+    if os.name == "nt":
+        tip = (f"\n\n当前 {n} / {len(assoc.EXTS)} 种格式的默认程序是 TuneKuo。\n"
+               "Windows 不允许程序静默抢占默认程序：如需全部生效，"
+               "请在“设置 → 应用 → 默认应用”的音乐播放器一项选择 TuneKuo。")
+    else:
+        tip = (f"\n\n当前 {n} / {len(assoc.EXTS)} 种格式的默认程序是 TuneKuo。\n"
+               "想改回别的播放器：用系统设置里的“默认应用”（Debian 上是 xdg-mime）。")
     if "--register" in flags and n < len(assoc.EXTS) and "--quiet" not in flags:
         assoc.open_default_apps_settings()
     if "--quiet" in flags:  # 供脚本/自检调用，不弹窗
@@ -190,16 +194,32 @@ def main() -> int:
     root = tk.Tk()
     root.withdraw()
 
-    if vlcenv.LIB is None:
-        messagebox.showerror(
-            APP_NAME,
-            "没有找到 64 位 libvlc，播放引擎无法启动。\n\n"
-            "解决办法（任选其一）：\n"
-            "1. 把解压出来的 64 位 VLC 文件夹放到程序旁边并命名为 vlc\n"
-            "2. 安装 64 位 VLC（videolan.org 下载 win64 版）\n\n"
-            "注意：Program Files (x86) 里那个 32 位的 VLC 用不了。",
-        )
-        return 2
+    if os.name == "nt":
+        if vlcenv.LIB is None:
+            messagebox.showerror(
+                APP_NAME,
+                "没有找到 64 位 libvlc，播放引擎无法启动。\n\n"
+                "解决办法（任选其一）：\n"
+                "1. 把解压出来的 64 位 VLC 文件夹放到程序旁边并命名为 vlc\n"
+                "2. 安装 64 位 VLC（videolan.org 下载 win64 版）\n\n"
+                "注意：Program Files (x86) 里那个 32 位的 VLC 用不了。",
+            )
+            return 2
+    else:
+        try:  # Linux/macOS：libvlc 由 python-vlc 去系统里找，这里确认它真能用
+            import vlc
+
+            vlc.libvlc_get_version()
+        except Exception:
+            messagebox.showerror(
+                APP_NAME,
+                "没有找到 libvlc，播放引擎无法启动。\n\n"
+                "装一个 VLC 就行（只要 libvlc，不需要图形界面）：\n"
+                "  Debian/Ubuntu:  sudo apt install vlc-plugin-base\n"
+                "  Fedora:         sudo dnf install vlc\n"
+                "  Arch:           sudo pacman -S vlc",
+            )
+            return 2
 
     try:
         from ui import TuneKuoUI

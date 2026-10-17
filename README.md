@@ -1,8 +1,8 @@
 # TuneKuo 🎵
 
-![界面语言](https://img.shields.io/badge/界面语言-中文%20%7C%20English%20%7C%20日本語-red) ![平台](https://img.shields.io/badge/平台-Android%207.0%2B%20%7C%20Windows%2010%2F11-green) ![架构](https://img.shields.io/badge/架构-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x64-blue)
+![界面语言](https://img.shields.io/badge/界面语言-中文%20%7C%20English%20%7C%20日本語-red) ![平台](https://img.shields.io/badge/平台-Android%207.0%2B%20%7C%20Windows%2010%2F11%20%7C%20Linux-green) ![架构](https://img.shields.io/badge/架构-armeabi--v7a%20%7C%20arm64--v8a%20%7C%20x64-blue)
 
-完全自用的本地音乐播放器，手机（Android）和电脑（Windows）两端都有。基于 libVLC 解码，全格式通吃——DSD (DSF/DFF)、APE、FLAC、杜比 TrueHD 等都能播。
+完全自用的本地音乐播放器，手机（Android）和电脑（Windows / Linux）两端都有。基于 libVLC 解码，全格式通吃——DSD (DSF/DFF)、APE、FLAC、杜比 TrueHD 等都能播。
 
 **界面语言：简体中文 / English / 日本語**，两端都能在设置页里随时切换。
 
@@ -19,9 +19,9 @@
 - **设置页**：主界面右滑进入（Windows 端点工具栏「设置」按钮），可切换界面语言（汉语 / English / 日本語）、查看版本号、跳转问题反馈
 - **深色 UI**：卡片式列表、当前曲目高亮（♪）、矢量图标、64dp 渐变播放大按钮
 
-## Windows 版
+## 电脑版（Windows / Linux）
 
-电脑端是独立的 Python + libVLC + tkinter 实现（源码在 [`windows/`](windows/) 目录），支持 Windows 10 / 11 64 位。
+电脑端是独立的 Python + libVLC + tkinter 实现（源码在 [`desktop/`](desktop/) 目录，Windows 与 Linux 共用同一份代码），支持 Windows 10 / 11 64 位和主流 Linux 发行版。
 
 - **下载安装**：见 [最新发布页](https://github.com/nianmenyikuo/TuneKuo/releases)，下载 `TuneKuo-Setup-*.exe` 双击安装（中文向导，安装包内自带解码引擎，无需另装 VLC）
 - **可设为默认播放器**：安装时勾选“注册为音频播放器”，装完在 系统设置 → 应用 → 默认应用 里把音频文件关联到 TuneKuo（Windows 不允许程序静默抢占，只能这样手动点一下）
@@ -31,12 +31,38 @@
 自行构建（需要 64 位 Python 3.10+）：
 
 ```powershell
-cd windows
+cd desktop
 pip install -r requirements.txt
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
 `build.ps1` 会自动下载 64 位 VLC 解码库，打包出免安装目录 `dist\TuneKuo\`。想做成安装程序再跑 `python scripts\make_installer.py`（需先安装 Inno Setup 6）。
+
+### Linux
+
+跟 Windows 端是同一份源码，界面与功能一致：
+
+```bash
+sudo apt install vlc-plugin-base          # 解码引擎（Fedora: sudo dnf install vlc）
+pip install -r desktop/requirements.txt   # python-vlc + Pillow
+desktop/linux/run.sh                      # 开发态直接运行
+
+desktop/linux/build.sh --install          # 用 PyInstaller 打成 dist/TuneKuo/
+desktop/linux/install.sh                  # 装到 ~/.local，并注册成默认播放器
+
+desktop/scripts/make_deb.py               # 也可以直接打 .deb（源码包，约 285 KB）
+desktop/linux/make_appimage.sh            # 或打自带 libvlc 的 AppImage（只能在 Linux 上跑）
+```
+
+`install.sh` 会写 `~/.local/share/applications/tunekuo.desktop`，并用 `xdg-mime` 把 25 种音频格式指向 TuneKuo；
+撤销用 `desktop/linux/install.sh --uninstall`。配置存在 `~/.config/TuneKuo/state.json`。
+
+1.0.4 起 Release 里直接带 Linux 包：`TuneKuo-*-all.deb`（依赖系统 python3/vlc，装着最省地方）和
+`TuneKuo-*-x86_64.AppImage`（自带 libvlc 与插件，`chmod +x` 后双击即用，不装 VLC 也能放）。
+这两个包由 GitHub Actions 在 Ubuntu 上打出（[`.github/workflows/linux-packages.yml`](.github/workflows/linux-packages.yml)），
+每打一次 tag 会自动构建，并在构建机上真的 `dpkg -i` 装一遍、在 xvfb 里启动一次才算过。
+
+> 已知差异：Linux 上系统媒体键（▶⏸ ⏮ ⏭）暂时不可用（要额外的 MPRIS/D-Bus 支持）；界面字体自动挑系统里有的（Noto Sans CJK / 文泉驿）。
 
 ## 构建（Android）
 

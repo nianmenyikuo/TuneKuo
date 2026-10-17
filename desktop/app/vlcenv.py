@@ -1,10 +1,11 @@
-"""定位可用的 64 位 libvlc，并设置 python-vlc 认得的两个环境变量。
+"""定位可用的 libvlc，并设置 python-vlc 认得的两个环境变量。
 
 必须在 `import vlc` 之前被导入（player.py 顶部就 import 本模块）。
-查找顺序：
+Windows 查找顺序：
     1. 随程序一起打包的 vlc\\            （PyInstaller onedir: exe 同级 或 _internal\\vlc）
     2. 开发目录 vendor\\vlc64\\          （scripts\\fetch_vlc.ps1 下载的 64 位 VLC）
     3. 系统安装的 64 位 VLC              （Program Files\\VideoLAN\\VLC）
+Linux/macOS：先看随包携带的 libvlc.so/libvlc.dylib，都没有就让 python-vlc 自己找系统装的 VLC。
 注意：Program Files (x86) 里的 VLC 是 32 位，64 位 Python 载入不了，故意跳过。
 """
 from __future__ import annotations
@@ -59,13 +60,37 @@ def _is_64bit_dll(path: str) -> bool:
         return False
 
 
+def posix_setup() -> Optional[str]:
+    """Linux/macOS：优先用随包携带的 libvlc，找不到就交给 python-vlc 去系统里找。"""
+    global _lib_path
+    base = base_dir()
+    for d in (os.path.join(base, "vlc"), os.path.join(base, "_internal", "vlc"),
+              os.path.join(base, "vendor", "vlc"), os.path.join(base, "libvlc")):
+        lib = None
+        for name in ("libvlc.so.5", "libvlc.so", "libvlc.dylib"):
+            cand = os.path.join(d, name)
+            if os.path.isfile(cand):
+                lib = cand
+                break
+        if not lib:
+            continue
+        plug = os.path.join(d, "plugins")
+        os.environ[LIB_ENV] = lib
+        if os.path.isdir(plug):
+            os.environ[MOD_ENV] = plug
+            os.environ.setdefault("VLC_PLUGIN_PATH", plug)
+        _lib_path = lib
+        return lib
+    return None
+
+
 def setup() -> Optional[str]:
-    """设置环境变量并返回 libvlc.dll 路径；找不到返回 None。"""
+    """设置环境变量并返回 libvlc 路径；找不到返回 None。"""
     global _lib_path
     if _lib_path:
         return _lib_path
     if os.name != "nt":
-        return None
+        return posix_setup()
     for d in candidates():
         dll = os.path.join(d, "libvlc.dll")
         if not os.path.isfile(dll):

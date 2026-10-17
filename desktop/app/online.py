@@ -17,6 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import paths
 import re
 import urllib.parse
 import urllib.request
@@ -46,7 +47,7 @@ class Info:
 
 # ---------------------------------------------------------------- 缓存
 def _state_base() -> str:
-    return os.environ.get("APPDATA") or os.path.expanduser("~")
+    return paths.config_dir()
 
 
 def cache_dir(sub: str) -> str:

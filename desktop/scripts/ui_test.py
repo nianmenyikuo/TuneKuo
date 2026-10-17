@@ -16,17 +16,26 @@ import webbrowser
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# 自检不碰用户真正的 %APPDATA%\TuneKuo\state.json，另起一个临时目录当配置目录
+# 自检不碰用户真正的配置目录（Windows %APPDATA% / Linux ~/.config），另起一个临时目录
 _STATE_HOME = tempfile.mkdtemp(prefix="tunekuo_ui_state_")
 os.environ["APPDATA"] = _STATE_HOME
+os.environ["XDG_CONFIG_HOME"] = _STATE_HOME
 
 sys.path.insert(0, os.path.join(ROOT, "app"))
 
+import paths  # noqa: E402
 import vlcenv  # noqa: E402
 
-if vlcenv.LIB is None:
-    print("失败：找不到 64 位 libvlc")
-    sys.exit(1)
+if os.name == "nt":
+    if vlcenv.LIB is None:
+        print("失败：找不到 64 位 libvlc")
+        sys.exit(1)
+else:
+    try:
+        import vlc  # noqa: F401
+    except Exception as exc:  # Linux/macOS 上 libvlc 由 python-vlc 自己去系统里找
+        print("失败：python-vlc / libvlc 不可用：", exc)
+        sys.exit(1)
 
 import tkinter as tk  # noqa: E402
 
@@ -338,7 +347,7 @@ pump(0.3)
 print("回主界面    :", round(app.offset, 2), "| 列表", len(app.tree.get_children()), "行")
 if not app.tree.get_children():
     errors.append("切换语言后列表空了")
-STATE_PATH = os.path.join(os.environ["APPDATA"], "TuneKuo", "state.json")
+STATE_PATH = os.path.join(paths.config_dir(), "state.json")
 try:
     with open(STATE_PATH, encoding="utf-8") as fp:
         saved = json.load(fp)

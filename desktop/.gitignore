@@ -22,3 +22,7 @@ venv/
 installer/TuneKuo.iss
 dist-installer/
 
+# Linux 打包产物（deb / AppImage 与 appimagetool 缓存）
+dist-linux/
+build-appimage/
+

@@ -1,0 +1,8 @@
+# shell 脚本必须保持 LF：Windows 上 core.autocrlf=true 会把 CRLF 写进文件，
+# 到了 Linux 上 "#!/usr/bin/env bash\r" 会被当成「坏的解释器」。
+*.sh text eol=lf
+
+# Windows 脚本保持 CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf

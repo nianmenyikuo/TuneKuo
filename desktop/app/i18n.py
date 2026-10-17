@@ -10,6 +10,8 @@ from __future__ import annotations
 import json
 import os
 
+import paths
+
 LANGS = [("zh", "汉语"), ("en", "English"), ("ja", "日本語")]
 
 _CODES = [c for c, _ in LANGS]
@@ -137,9 +139,8 @@ TEXT = {
 
 # ------------------------------------------------------------------ state.json
 def state_file() -> str:
-    """与 ui.STATE_FILE 同一个文件（%APPDATA%\\TuneKuo\\state.json）。"""
-    base = os.environ.get("APPDATA") or os.path.expanduser("~")
-    return os.path.join(base, "TuneKuo", "state.json")
+    """与 ui.STATE_FILE 同一个文件（Windows 是 %APPDATA%\\TuneKuo，其它平台是 ~/.config/TuneKuo）。"""
+    return os.path.join(paths.config_dir(), "state.json")
 
 
 def _read_state() -> dict:

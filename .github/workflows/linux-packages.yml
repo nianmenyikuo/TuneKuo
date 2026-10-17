@@ -1,0 +1,80 @@
+name: Linux 安装包
+
+# 打 tag（v1.0.4、v1.0.5 …）时自动出 deb 与 AppImage；也可以在 Actions 页手动跑。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selfcheck:
+    name: Linux 界面自检
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: 装依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-tk python3-vlc vlc-plugin-base xvfb
+      - name: 源码自检（xvfb 里真把窗口建起来）
+        run: xvfb-run -a python3 desktop/scripts/ui_test.py
+
+  deb:
+    name: deb
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: 装依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-tk python3-vlc vlc-plugin-base xvfb
+      - name: 打 deb
+        run: python3 desktop/scripts/make_deb.py -o dist-linux
+      - name: 用 dpkg 真装上再起一回
+        run: |
+          sudo dpkg -i dist-linux/*.deb
+          sudo apt-get -f install -y
+          dpkg -s tunekuo | head -6
+          set +e
+          xvfb-run -a timeout 20 tunekuo
+          code=$?
+          set -e
+          echo "tunekuo 退出码 $code（124 = 20 秒没退，说明正常起来了）"
+          [ "$code" = "124" ]
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TuneKuo-deb
+          path: dist-linux/*.deb
+
+  appimage:
+    name: AppImage
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: 装依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-tk python3-vlc vlc-plugin-base python3-pip xvfb
+          python3 -m pip install --user pyinstaller
+      - name: 打 AppImage
+        run: bash desktop/linux/make_appimage.sh
+      - name: 起一回看看（解包运行，不用 FUSE）
+        run: |
+          chmod +x dist-linux/*.AppImage
+          set +e
+          APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a timeout 25 ./dist-linux/TuneKuo-*-x86_64.AppImage
+          code=$?
+          set -e
+          echo "AppImage 退出码 $code（124 = 25 秒没退，说明正常起来了）"
+          [ "$code" = "124" ]
+      - run: ls -lh dist-linux/*.AppImage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TuneKuo-AppImage
+          path: dist-linux/*.AppImage
