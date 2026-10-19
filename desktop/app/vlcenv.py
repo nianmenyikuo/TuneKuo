@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import os
 import sys
@@ -43,6 +44,7 @@ def _is_64bit_dll(path: str) -> bool:
             return False
         return struct.unpack_from("<H", sig, 4)[0] == 0x8664
     except Exception:
+        swallow("vlcenv._is_64bit_dll")
         return False
 
 def posix_setup() -> Optional[str]:
@@ -87,6 +89,7 @@ def setup() -> Optional[str]:
         try:
             os.add_dll_directory(d)
         except Exception:
+            swallow("vlcenv.setup")
             pass
         os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
         _lib_path = dll

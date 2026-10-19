@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import os
 import re
@@ -168,6 +169,7 @@ def _parse_vorbis_comment(buf: bytes) -> dict:
                 k, v = kv.split("=", 1)
                 d.setdefault(k.strip().upper(), v)
     except Exception:
+        swallow("metadata._parse_vorbis_comment")
         pass
     return d
 
@@ -204,6 +206,7 @@ def _parse_flac(f, out: dict) -> None:
                 if rate > 0 and total > 0:
                     out["duration"] = total * 1000 // rate
             except Exception:
+                swallow("metadata._parse_flac")
                 pass
         elif btype == 4:
             _apply_vorbis(_parse_vorbis_comment(block), out)
@@ -220,6 +223,7 @@ def _parse_flac(f, out: dict) -> None:
                 if out.get("cover") is None and plen > 0:
                     out["cover"] = block[pos:pos + plen]
             except Exception:
+                swallow("metadata._parse_flac")
                 pass
         if last:
             break
@@ -315,6 +319,7 @@ def _parse_ape(f, out: dict) -> None:
                 if z >= 0:
                     out["cover"] = val[z + 1:]
     except Exception:
+        swallow("metadata._parse_ape")
         pass
 
 def _parse_mp4(f, out: dict) -> None:
@@ -323,6 +328,7 @@ def _parse_mp4(f, out: dict) -> None:
         total = f.tell()
         _walk_atoms(f, 0, total, 0, out)
     except Exception:
+        swallow("metadata._parse_mp4")
         pass
 
 def _walk_atoms(f, start: int, end: int, depth: int, out: dict) -> None:
@@ -415,6 +421,7 @@ def _folder_cover(path: str) -> Optional[bytes]:
     try:
         names = os.listdir(d)
     except Exception:
+        swallow("metadata._folder_cover")
         return None
     low = {n.lower(): n for n in names}
     for base in _COVER_NAMES:
@@ -425,6 +432,7 @@ def _folder_cover(path: str) -> Optional[bytes]:
                     with open(os.path.join(d, n), "rb") as fp:
                         return fp.read()
                 except Exception:
+                    swallow("metadata._folder_cover")
                     pass
     for n in names:
         if os.path.splitext(n)[1].lower() in _IMG_EXTS:
@@ -432,6 +440,7 @@ def _folder_cover(path: str) -> Optional[bytes]:
                 with open(os.path.join(d, n), "rb") as fp:
                     return fp.read()
             except Exception:
+                swallow("metadata._folder_cover")
                 pass
     return None
 
@@ -445,6 +454,7 @@ def read_lyrics_file(path: str) -> str:
                     with open(cand, "r", encoding=enc) as fp:
                         return fp.read()
                 except Exception:
+                    swallow("metadata.read_lyrics_file")
                     continue
     return ""
 
@@ -471,6 +481,7 @@ def read_tags(path: str) -> dict:
                 f.seek(0)
                 _parse_id3v2(f, out)
     except Exception:
+        swallow("metadata.read_tags")
         pass
     if not out.get("lyrics"):
         txt = read_lyrics_file(path)
@@ -498,6 +509,7 @@ def parse_playlist(path: str):
                         if len(v) == 2:
                             files.append(v[1].strip())
         except Exception:
+            swallow("metadata.parse_playlist")
             return []
     else:
         base = os.path.dirname(path)
@@ -511,5 +523,6 @@ def parse_playlist(path: str):
                         line = os.path.join(base, line)
                     files.append(line)
         except Exception:
+            swallow("metadata.parse_playlist")
             return []
     return [p for p in files if os.path.isfile(p)]

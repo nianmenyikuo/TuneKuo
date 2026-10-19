@@ -137,7 +137,8 @@ desktop\（仓库里的 desktop\ 目录；Windows 与 Linux 同一份代码）
 │  ├─ main.py            入口：命令行参数、单实例、启动界面
 │  ├─ ui.py              tkinter 界面（深色主题、列表/搜索/封面/歌词/播放条/设置页）
 │  ├─ i18n.py            多语言文本表（汉语 / English / 日本語）+ 语言记忆
-│  ├─ version.py         版本号、程序名、反馈链接（只在这一处改）
+│  ├─ version.py         读仓库根目录的 VERSION（版本号只在那一个文件里改）
+│  ├─ applog.py          日志：写到配置目录的 logs\tunekuo.log，设置页可打开
 │  ├─ paths.py           跨平台路径：配置目录（Windows %APPDATA%，Linux ~/.config）、资源目录
 │  ├─ player.py          libVLC 播放引擎（播放模式、切歌、进度、音量）
 │  ├─ vlcenv.py          定位 libvlc（Windows：随包 vlc\ / 系统 VLC；Linux：系统 VLC）

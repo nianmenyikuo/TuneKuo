@@ -17,10 +17,12 @@ fi
   --icon "$ROOT/app/assets/icon.png" \
   --add-data "$ROOT/app/assets:assets" \
   --hidden-import vlc --hidden-import vlcenv --hidden-import mediakeys \
-  --hidden-import instance --hidden-import paths \
+  --hidden-import instance --hidden-import paths --hidden-import applog \
   --hidden-import PIL.Image --hidden-import PIL.ImageTk \
   --distpath dist --workpath build --specpath build \
   app/main.py
+
+cp "$ROOT/../VERSION" dist/TuneKuo/VERSION
 
 echo
 echo "打包完成：$ROOT/dist/TuneKuo/TuneKuo"

@@ -67,6 +67,8 @@ def payload() -> list[tuple[str, bytes, int]]:
         if name.endswith(".py"):
             with open(os.path.join(APP, name), "rb") as fp:
                 out.append((f".{LIBDIR}/{name}", fp.read(), 0o644))
+    with open(os.path.join(os.path.dirname(ROOT), "VERSION"), "rb") as fp:
+        out.append((f".{LIBDIR}/VERSION", fp.read(), 0o644))
     return out
 
 def tar_gz(entries: list[tuple[str, bytes, int]]) -> bytes:

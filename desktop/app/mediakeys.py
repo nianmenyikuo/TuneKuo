@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import ctypes
 import os
@@ -43,6 +44,7 @@ class MediaKeys(threading.Thread):
                 if user32.RegisterHotKey(None, hid, MOD_NOREPEAT, vk):
                     self.registered.append(action)
             except Exception:
+                swallow("mediakeys.MediaKeys.run")
                 pass
         if not self.registered:
             return
@@ -51,6 +53,7 @@ class MediaKeys(threading.Thread):
             try:
                 ret = user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
             except Exception:
+                swallow("mediakeys.MediaKeys.run")
                 break
             if ret in (0, -1):
                 break
@@ -60,11 +63,13 @@ class MediaKeys(threading.Thread):
                     try:
                         self.callback(act[0])
                     except Exception:
+                        swallow("mediakeys.MediaKeys.run")
                         pass
             try:
                 user32.TranslateMessage(ctypes.byref(msg))
                 user32.DispatchMessageW(ctypes.byref(msg))
             except Exception:
+                swallow("mediakeys.MediaKeys.run")
                 pass
 
     def stop(self) -> None:
@@ -73,10 +78,12 @@ class MediaKeys(threading.Thread):
             try:
                 user32.UnregisterHotKey(None, hid)
             except Exception:
+                swallow("mediakeys.MediaKeys.stop")
                 pass
         try:
             user32.PostThreadMessageW(self.ident, 0x0012, 0, 0)
         except Exception:
+            swallow("mediakeys.MediaKeys.stop")
             pass
 
 def available() -> bool:

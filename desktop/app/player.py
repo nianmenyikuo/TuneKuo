@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import random
 import threading
@@ -82,6 +83,7 @@ class Player:
         try:
             self.on_event(kind, payload)
         except Exception:
+            swallow("player.Player._fire")
             pass
 
     def _on_end(self, event):
@@ -92,6 +94,7 @@ class Player:
         try:
             ms = int(event.u.new_length)
         except Exception:
+            swallow("player.Player._on_length")
             ms = 0
         if ms <= 0:
             ms = self.get_length()
@@ -141,6 +144,7 @@ class Player:
         try:
             media.add_option(":no-video")
         except Exception:
+            swallow("player.Player._load")
             pass
         self.player.set_media(media)
         self._end_pending = False
@@ -259,18 +263,21 @@ class Player:
         try:
             return max(0, self.player.get_time())
         except Exception:
+            swallow("player.Player.get_time")
             return 0
 
     def get_length(self) -> int:
         try:
             return max(0, self.player.get_length())
         except Exception:
+            swallow("player.Player.get_length")
             return 0
 
     def seek(self, ms: int) -> None:
         try:
             self.player.set_time(max(0, int(ms)))
         except Exception:
+            swallow("player.Player.seek")
             pass
 
     def seek_ratio(self, r: float) -> None:
@@ -282,33 +289,39 @@ class Player:
         try:
             self.player.audio_set_volume(max(0, min(100, int(v))))
         except Exception:
+            swallow("player.Player.set_volume")
             pass
 
     def get_volume(self) -> int:
         try:
             return max(0, self.player.audio_get_volume())
         except Exception:
+            swallow("player.Player.get_volume")
             return 0
 
     def is_playing(self) -> bool:
         try:
             return bool(self.player.is_playing())
         except Exception:
+            swallow("player.Player.is_playing")
             return False
 
     def set_rate(self, rate: float) -> None:
         try:
             self.player.set_rate(rate)
         except Exception:
+            swallow("player.Player.set_rate")
             pass
 
     def release(self) -> None:
         try:
             self.player.stop()
         except Exception:
+            swallow("player.Player.release")
             pass
         try:
             self.player.release()
             self.instance.release()
         except Exception:
+            swallow("player.Player.release")
             pass

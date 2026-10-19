@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import json
 import os
@@ -125,6 +126,7 @@ TEXT = {
     "settings.back": ("← 返回", "← Back", "← 戻る"),
     "settings.language": ("语言", "Language", "言語"),
     "settings.feedback": ("Bug 与更新意见反馈", "Bug reports & feedback", "バグ報告・ご意見"),
+    "settings.log": ("打开日志文件", "Open log file", "ログを開く"),
     "settings.mark": ("●", "●", "●"),
 }
 
@@ -137,6 +139,7 @@ def _read_state() -> dict:
             data = json.load(fp)
         return data if isinstance(data, dict) else {}
     except Exception:
+        swallow("i18n._read_state")
         return {}
 
 def _write_state(data: dict) -> None:
@@ -146,6 +149,7 @@ def _write_state(data: dict) -> None:
         with open(path, "w", encoding="utf-8") as fp:
             json.dump(data, fp, ensure_ascii=False)
     except Exception:
+        swallow("i18n._write_state")
         pass
 
 def _load() -> str:
@@ -189,5 +193,6 @@ def t(key: str, **kw) -> str:
         try:
             text = text.format(**kw)
         except Exception:
+            swallow("i18n.t")
             pass
     return text

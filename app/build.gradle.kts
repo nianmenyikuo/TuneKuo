@@ -3,6 +3,23 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val versionNameFromFile = rootProject.file("VERSION").readText().trim()
+val versionNumbers = versionNameFromFile.split(".")
+val versionCodeFromFile = versionNumbers[0].toInt() * 10000 +
+        versionNumbers[1].toInt() * 100 +
+        versionNumbers[2].toInt()
+
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps: Map<String, String> = if (keystorePropsFile.exists()) {
+    keystorePropsFile.readLines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+        .associate { it.substringBefore("=").trim() to it.substringAfter("=").trim() }
+} else {
+    emptyMap()
+}
+val hasReleaseKey = keystoreProps["storeFile"] != null
+
 android {
     namespace = "com.personal.tunebox"
     compileSdk = 34
@@ -11,8 +28,8 @@ android {
         applicationId = "com.personal.tunebox"
         minSdk = 24
         targetSdk = 34
-        versionCode = 6
-        versionName = "1.0.6"
+        versionCode = versionCodeFromFile
+        versionName = versionNameFromFile
         val abis = mutableListOf("armeabi-v7a", "arm64-v8a")
         if (project.hasProperty("emu")) abis.add("x86_64")
         ndk {
@@ -20,9 +37,23 @@ android {
         }
     }
 
+    if (hasReleaseKey) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getValue("storeFile"))
+                storePassword = keystoreProps.getValue("storePassword")
+                keyAlias = keystoreProps.getValue("keyAlias")
+                keyPassword = keystoreProps.getValue("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {

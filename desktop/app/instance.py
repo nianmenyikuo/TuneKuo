@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import json
 import os
@@ -21,6 +22,7 @@ class SingleInstance:
         try:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         except Exception:
+            swallow("instance.SingleInstance.acquire")
             pass
         try:
             s.bind((HOST, PORT))
@@ -30,6 +32,7 @@ class SingleInstance:
             try:
                 s.close()
             except Exception:
+                swallow("instance.SingleInstance.acquire")
                 pass
             return False
         self._sock = s
@@ -59,11 +62,13 @@ class SingleInstance:
                         if paths:
                             self.on_paths(paths)
                     except Exception:
+                        swallow("instance.SingleInstance._serve")
                         pass
             finally:
                 try:
                     conn.close()
                 except Exception:
+                    swallow("instance.SingleInstance._serve")
                     pass
 
     def release(self) -> None:
@@ -72,6 +77,7 @@ class SingleInstance:
             try:
                 self._sock.close()
             except Exception:
+                swallow("instance.SingleInstance.release")
                 pass
             self._sock = None
 
@@ -90,4 +96,5 @@ def send_to_primary(paths: List[str]) -> bool:
         try:
             s.close()
         except Exception:
+            swallow("instance.send_to_primary")
             pass

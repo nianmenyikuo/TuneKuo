@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import log_file, swallow
 
 import io
 import json
@@ -35,6 +36,7 @@ try:
 
     HAS_PIL = True
 except Exception:
+    swallow("ui")
     HAS_PIL = False
 
 BG = "#12121A"
@@ -98,6 +100,7 @@ def _pick_fonts() -> None:
 
         families = set(tkfont.families())
     except Exception:
+        swallow("ui._pick_fonts")
         return
     for name in ("Noto Sans CJK SC", "Source Han Sans SC", "Noto Sans SC",
                  "WenQuanYi Micro Hei", "Noto Sans", "DejaVu Sans"):
@@ -137,6 +140,7 @@ class TuneKuoUI:
                 self.mediakeys = mediakeys.MediaKeys(lambda a: self.evq.put(("key", a, None)))
                 self.mediakeys.start()
         except Exception:
+            swallow("ui.TuneKuoUI.__init__")
             self.mediakeys = None
 
         self.load_state()
@@ -154,6 +158,7 @@ class TuneKuoUI:
         try:
             style.theme_use("clam")
         except Exception:
+            swallow("ui.TuneKuoUI._build_style")
             pass
         style.configure("Treeview", background=PANEL, fieldbackground=PANEL, foreground=FG,
                         rowheight=30, borderwidth=0, font=(UI_FONT, 10))
@@ -193,6 +198,7 @@ class TuneKuoUI:
                 else:
                     r.iconphoto(True, tk.PhotoImage(file=icon))
             except Exception:
+                swallow("ui.TuneKuoUI._build_ui")
                 pass
 
         self.offset = 0.0
@@ -386,8 +392,13 @@ class TuneKuoUI:
 
         self.lb_feedback = tk.Label(box, text=tr("settings.feedback"), bg=PANEL, fg=ACCENT,
                                     font=(UI_FONT, 10, "underline"), anchor="w", cursor="hand2")
-        self.lb_feedback.pack(fill="x", padx=16, pady=(18, 14))
+        self.lb_feedback.pack(fill="x", padx=16, pady=(18, 6))
         self.lb_feedback.bind("<Button-1>", lambda e: self.open_feedback(), add="+")
+
+        self.lb_log = tk.Label(box, text=tr("settings.log"), bg=PANEL, fg=FG_DIM,
+                               font=(UI_FONT, 10, "underline"), anchor="w", cursor="hand2")
+        self.lb_log.pack(fill="x", padx=16, pady=(0, 14))
+        self.lb_log.bind("<Button-1>", lambda e: self.open_log(), add="+")
 
         self.lb_version = tk.Label(page, text=f"{APP_NAME} {VERSION}", bg=BG, fg=FG_DIM,
                                    font=(UI_FONT, 9), anchor="w")
@@ -413,6 +424,16 @@ class TuneKuoUI:
         try:
             webbrowser.open(FEEDBACK_URL)
         except Exception:
+            swallow("ui.TuneKuoUI.open_feedback")
+            pass
+
+    def open_log(self) -> None:
+        cmd = _reveal_cmd(log_file())
+        if not cmd:
+            return
+        try:
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except OSError:
             pass
 
     def _retranslate(self) -> None:
@@ -426,6 +447,7 @@ class TuneKuoUI:
         self.lb_settings_title.config(text=tr("settings.title"))
         self.lb_lang_group.config(text=tr("settings.language"))
         self.lb_feedback.config(text=tr("settings.feedback"))
+        self.lb_log.config(text=tr("settings.log"))
         self._apply_lang_highlight()
         self._update_placeholder()
         self._update_count()
@@ -467,6 +489,7 @@ class TuneKuoUI:
             try:
                 self.root.after_cancel(self._anim)
             except Exception:
+                swallow("ui.TuneKuoUI._slide_to")
                 pass
             self._anim = None
         self._animate(target)
@@ -501,6 +524,7 @@ class TuneKuoUI:
         try:
             return widget.winfo_class() not in self._NO_DRAG
         except Exception:
+            swallow("ui.TuneKuoUI._drag_ok")
             return False
 
     def _drag_press(self, event) -> None:
@@ -544,6 +568,7 @@ class TuneKuoUI:
                                             widget.winfo_rooty() + widget.winfo_height() + 6))
                 self._tip_win = win
             except Exception:
+                swallow("ui.TuneKuoUI._tip.show")
                 self._tip_win = None
 
         def hide(_e=None):
@@ -560,6 +585,7 @@ class TuneKuoUI:
             try:
                 win.destroy()
             except Exception:
+                swallow("ui.TuneKuoUI._tip_hide")
                 pass
 
     def _query(self) -> str:
@@ -597,6 +623,7 @@ class TuneKuoUI:
         try:
             w = self.root.focus_get()
         except Exception:
+            swallow("ui.TuneKuoUI._typing")
             return False
         return isinstance(w, (tk.Entry, tk.Text))
 
@@ -625,6 +652,7 @@ class TuneKuoUI:
         try:
             self.lb_status.config(text=text)
         except Exception:
+            swallow("ui.TuneKuoUI.set_status")
             pass
 
     def _refresh_status(self) -> None:
@@ -632,6 +660,7 @@ class TuneKuoUI:
         try:
             self.lb_status.config(text=tr(key, **kw))
         except Exception:
+            swallow("ui.TuneKuoUI._refresh_status")
             pass
 
     def add_paths(self, paths: List[str], autoplay: bool = True) -> None:
@@ -748,6 +777,7 @@ class TuneKuoUI:
             self.root.clipboard_append(text)
             self.set_status(key="copied")
         except Exception:
+            swallow("ui.TuneKuoUI.copy_text")
             pass
 
     def _kv(self, key: str, value) -> str:
@@ -760,6 +790,7 @@ class TuneKuoUI:
         try:
             size = os.path.getsize(t.path)
         except Exception:
+            swallow("ui.TuneKuoUI.show_song_detail")
             size = 0
         ext = os.path.splitext(t.path)[1].lstrip(".").upper() or "?"
         body = "\n".join((
@@ -783,6 +814,7 @@ class TuneKuoUI:
             try:
                 info = online.fetch(t)
             except Exception:
+                swallow("ui.TuneKuoUI.fetch_online.work")
                 info = None
             self.evq.put(("online", idx, info))     
 
@@ -904,6 +936,7 @@ class TuneKuoUI:
         try:
             done = assoc.register()
         except Exception as e:
+            swallow("ui.TuneKuoUI.register_default")
             messagebox.showerror(tr("dlg.register_failed_title"), tr("dlg.register_failed_body", e=e))
             return
         self._refresh_default_status()
@@ -916,6 +949,7 @@ class TuneKuoUI:
         try:
             self._default_n = assoc.default_count()
         except Exception:
+            swallow("ui.TuneKuoUI._refresh_default_status")
             return
         self._apply_default_button()
 
@@ -1090,6 +1124,7 @@ class TuneKuoUI:
                 c.create_image(w / 2, h / 2, image=self._cover_photo)
                 return
             except Exception:
+                swallow("ui.TuneKuoUI._render_cover")
                 pass
         if data and not HAS_PIL and data[:8] == b"\x89PNG\r\n\x1a\n":
             try:
@@ -1097,6 +1132,7 @@ class TuneKuoUI:
                 c.create_image(w / 2, h / 2, image=self._cover_photo)
                 return
             except Exception:
+                swallow("ui.TuneKuoUI._render_cover")
                 pass
         c.create_rectangle(x0, y0, x0 + size, y0 + size, fill=CARD, outline="")
         c.create_text(w / 2, h / 2 - 14, text=GLYPH_MUSIC, fill="#4A4A66", font=(ICON_FONT, int(size / 4)))
@@ -1157,6 +1193,7 @@ class TuneKuoUI:
                 if isinstance(old, dict):
                     data.update(old)
             except Exception:
+                swallow("ui.TuneKuoUI.save_state")
                 pass
             data.update({
                 "tracks": [t.path for t in self.player.tracks][:MAX_STATE_TRACKS],
@@ -1169,6 +1206,7 @@ class TuneKuoUI:
             with open(STATE_FILE, "w", encoding="utf-8") as fp:
                 json.dump(data, fp, ensure_ascii=False)
         except Exception:
+            swallow("ui.TuneKuoUI.save_state")
             pass
 
     def load_state(self) -> None:
@@ -1178,6 +1216,7 @@ class TuneKuoUI:
             with open(STATE_FILE, "r", encoding="utf-8") as fp:
                 data = json.load(fp)
         except Exception:
+            swallow("ui.TuneKuoUI.load_state")
             return
         lang = data.get("lang")
         if isinstance(lang, str) and lang != current_language() and lang in {c for c, _ in LANGS}:
@@ -1205,22 +1244,27 @@ class TuneKuoUI:
         try:
             self._tip_hide()
         except Exception:
+            swallow("ui.TuneKuoUI.on_close")
             pass
         try:
             self.save_state()
         except Exception:
+            swallow("ui.TuneKuoUI.on_close")
             pass
         try:
             if self.mediakeys:
                 self.mediakeys.stop()
         except Exception:
+            swallow("ui.TuneKuoUI.on_close")
             pass
         try:
             self.loader.stop()
         except Exception:
+            swallow("ui.TuneKuoUI.on_close")
             pass
         try:
             self.player.release()
         except Exception:
+            swallow("ui.TuneKuoUI.on_close")
             pass
         self.root.destroy()

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import os
 import sys
@@ -119,6 +120,7 @@ def run_selftest(paths) -> int:
                     try:
                         _m.release()
                     except Exception:
+                        swallow("main.run_selftest")
                         pass
             player.set_playlist([Track(path=f) for f in files], 0, autoplay=True)
             deadline = time.time() + 8
@@ -133,18 +135,24 @@ def run_selftest(paths) -> int:
         code = 0
         report.append("结果=通过")
     except Exception:
+        swallow("main.run_selftest")
         report.append("结果=失败\n" + traceback.format_exc())
     finally:
         if player is not None:
             try:
                 player.release()
             except Exception:
+                swallow("main.run_selftest")
                 pass
         _write_report("\n".join(report), "tunekuo_selftest.txt")
     return code
 
 def main() -> int:
     _ensure_sys_path()
+
+    import applog
+
+    applog.setup()
 
     if any(a.lower() == "--selftest" for a in sys.argv[1:]):
         return run_selftest(collect_paths(sys.argv[1:]))
@@ -167,10 +175,12 @@ def main() -> int:
         if not primary.acquire():
             primary = None
     except Exception:
+        swallow("main.main")
         primary = None
 
     root = tk.Tk()
     root.withdraw()
+    applog.install_tk_reporting(root)
 
     if os.name == "nt":
         if vlcenv.LIB is None:
@@ -189,6 +199,7 @@ def main() -> int:
 
             vlc.libvlc_get_version()
         except Exception:
+            swallow("main.main")
             messagebox.showerror(
                 APP_NAME,
                 "没有找到 libvlc，播放引擎无法启动。\n\n"
@@ -204,6 +215,7 @@ def main() -> int:
 
         app = TuneKuoUI(root, initial_paths=paths)
     except Exception as e:
+        swallow("main.main")
         import traceback
 
         messagebox.showerror(APP_NAME, f"启动失败：\n{e}\n\n{traceback.format_exc()}")

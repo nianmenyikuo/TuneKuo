@@ -16,6 +16,7 @@ local.properties
 # Keystores — never commit signing keys
 *.jks
 *.keystore
+keystore.properties
 
 # Logs / misc
 *.log

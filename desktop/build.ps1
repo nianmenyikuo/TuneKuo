@@ -1,4 +1,4 @@
-﻿# 打包 TuneKuo for Windows -> dist\TuneKuo\
+# 打包 TuneKuo for Windows -> dist\TuneKuo\
 param(
   [switch]$NoVlc,
   [switch]$NoInstall
@@ -44,6 +44,7 @@ Write-Host "PyInstaller 打包 ..." -ForegroundColor Cyan
   --hidden-import vlcenv `
   --hidden-import mediakeys `
   --hidden-import instance `
+  --hidden-import applog `
   --hidden-import PIL.Image `
   --hidden-import PIL.ImageTk `
   --distpath (Join-Path $root 'dist') --workpath (Join-Path $root 'build') `
@@ -71,6 +72,8 @@ foreach ($docName in @('README.md', 'README-Windows.md')) {
     break
   }
 }
+
+Copy-Item (Join-Path $root '..\VERSION') (Join-Path $root 'dist\TuneKuo\VERSION') -Force
 
 $exe = Join-Path $root 'dist\TuneKuo\TuneKuo.exe'
 if (Test-Path $exe) {

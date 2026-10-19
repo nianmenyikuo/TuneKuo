@@ -27,6 +27,7 @@
 - **可设为默认播放器**：安装时勾选“注册为音频播放器”，装完在 系统设置 → 应用 → 默认应用 里把音频文件关联到 TuneKuo（Windows 不允许程序静默抢占，只能这样手动点一下）
 - **设置页**：工具栏「设置」按钮进入，与手机端一致（语言切换 / 版本号 / 问题反馈）
 - 功能与手机端对齐：25 种格式、四种播放模式、歌词逐行高亮与内嵌封面、音乐搜索、重新扫描、**右键联网获取歌曲信息/歌词**、右键查看详情/复制/删除文件、深色界面、键盘媒体键、单实例
+- **出错看日志**：设置页的「打开日志文件」直接打开 `%APPDATA%\TuneKuo\logs\tunekuo.log`（Linux 在 `~/.config/TuneKuo/logs/`），滚动保留 3 份、每份最多 512 KB
 
 自行构建（需要 64 位 Python 3.10+）：
 
@@ -67,9 +68,26 @@ desktop/linux/make_appimage.sh            # 或打自带 libvlc 的 AppImage（�
 ## 构建（Android）
 
 - Android Studio：打开项目直接 Run
-- 命令行：`./gradlew assembleDebug`（首次先 `gradle wrapper` 生成 wrapper）
+- 命令行：`./gradlew assembleDebug`（wrapper 已随仓库提交，首次会自动下载 Gradle 8.9，国内慢的话可改 `gradle/wrapper/gradle-wrapper.properties` 里的 `distributionUrl` 走镜像）
 - 本机验证过的组合：Gradle 8.9 + JDK 17 + Android SDK 34（`local.properties` 里的 `sdk.dir` 指向本地 SDK）
+- 版本号只有一个来源：仓库根 [`VERSION`](VERSION)，Gradle 按 `major*10000 + minor*100 + patch` 换算 versionCode（1.0.6 → 10006）
 - APK 输出：`app/build/outputs/apk/debug/app-debug.apk`
+
+### 正式签名（发布用）
+
+在仓库根放一份 `keystore.properties`（已在 `.gitignore` 里，别提交）：
+
+```properties
+storeFile=C:/Users/你的用户名/.tunekuo/tunekuo-release.jks
+storePassword=……
+keyAlias=tunekuo
+keyPassword=……
+```
+
+有它时 `./gradlew assembleRelease` 就用这个密钥签名，没有则退回 debug 签名（不影响 `assembleDebug`）。
+发布出去的 `app-release.apk` 必须始终是**同一个密钥**签的：换了密钥，老用户升级会提示签名冲突，只能卸载重装。所以 `tunekuo-release.jks` 和那份口令要**单独备份**——它不在仓库里，丢了就再也发不出可升级的新版。
+
+[`.github/workflows/android.yml`](.github/workflows/android.yml) 在打 tag 时自动编译，断言版本号与 `VERSION` 一致，并用 CI 里临时生成的密钥跑一遍 `assembleRelease` + `apksigner verify`，确认签名这条路是通的（不碰真密钥）。
 
 ## 环境（Android）
 
@@ -78,6 +96,7 @@ desktop/linux/make_appimage.sh            # 或打自带 libvlc 的 AppImage（�
 
 ## 说明
 
+- 两端版本号都取自仓库根 `VERSION`，不用手改
 - 32 位与 64 位 ABI 均支持（armeabi-v7a + arm64-v8a）
 - 开机自启动接收器已内置（可选）
 - 杜比 TrueHD/AC-3 码流解码播放正常；完整 Atmos 空间渲染需杜比授权 SDK，立体声下混输出

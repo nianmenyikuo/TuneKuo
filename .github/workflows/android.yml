@@ -1,0 +1,41 @@
+name: 安卓 APK
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    name: 编译 + 版本号 + 签名
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: 打 debug 包
+        run: ./gradlew assembleDebug --no-daemon --console=plain
+      - name: 版本号必须来自 VERSION
+        run: |
+          python3 -c "import json,pathlib;m=json.loads(pathlib.Path('app/build/outputs/apk/debug/output-metadata.json').read_text())['elements'][0];w=pathlib.Path('VERSION').read_text().strip();p=w.split('.');print('versionName',m['versionName'],'versionCode',m['versionCode']);assert m['versionName']==w and m['versionCode']==int(p[0])*10000+int(p[1])*100+int(p[2])"
+      - name: 真签名那条路能走通（CI 临时密钥，不碰真密钥）
+        run: |
+          keytool -genkeypair -keystore ci.p12 -storetype PKCS12 -alias ci \
+            -keyalg RSA -keysize 2048 -validity 5 \
+            -storepass cirunonly -keypass cirunonly -dname "CN=ci"
+          printf 'storeFile=%s/ci.p12\nstorePassword=cirunonly\nkeyAlias=ci\nkeyPassword=cirunonly\n' "$PWD" > keystore.properties
+          ./gradlew assembleRelease --no-daemon --console=plain
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          ls -l "$apk"
+          apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | tail -1)
+          "$apksigner" verify --print-certs "$apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TuneKuo-apk-debug
+          path: app/build/outputs/apk/debug/app-debug.apk

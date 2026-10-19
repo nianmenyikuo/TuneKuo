@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import os
 import queue
@@ -81,16 +82,19 @@ def _wait_parsed(media, timeout: float = 6.0) -> None:
         if int(media.get_duration() or 0) > 0:
             return
     except Exception:
+        swallow("library._wait_parsed")
         pass
     done = threading.Event()
     try:
         media.event_manager().event_attach(vlc.EventType.MediaParsedChanged,
                                            lambda *_: done.set())
     except Exception:
+        swallow("library._wait_parsed")
         pass
     try:
         media.parse_with_options(PARSE_FLAG, 0)
     except Exception:
+        swallow("library._wait_parsed")
         return
     deadline = time.time() + timeout
     while time.time() < deadline:
@@ -98,6 +102,7 @@ def _wait_parsed(media, timeout: float = 6.0) -> None:
             if done.is_set() or media.is_parsed():
                 return
         except Exception:
+            swallow("library._wait_parsed")
             return
         time.sleep(0.02)
 
@@ -146,10 +151,12 @@ class MetaLoader:
             try:
                 self._load_one(track)
             except Exception:
+                swallow("library.MetaLoader._run")
                 track.loaded = True
             try:
                 self.on_loaded(gen, track)
             except Exception:
+                swallow("library.MetaLoader._run")
                 pass
 
     def _load_one(self, track: Track) -> None:
@@ -185,6 +192,7 @@ class MetaLoader:
             try:
                 self._vlc_instance = vlc.Instance("--no-video", "--quiet")
             except Exception:
+                swallow("library.MetaLoader._instance")
                 self._vlc_instance = False
         return self._vlc_instance or None
 
@@ -205,10 +213,12 @@ class MetaLoader:
             if not track.album:
                 track.album = (media.get_meta(vlc.Meta.Album) or "").strip()
         except Exception:
+            swallow("library.MetaLoader._load_from_vlc")
             pass
         finally:
             try:
                 media.release()
             except Exception:
+                swallow("library.MetaLoader._load_from_vlc")
                 pass
         track.loaded = True

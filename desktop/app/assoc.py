@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import mimetypes
 import os
@@ -95,6 +96,7 @@ def _linux_register() -> list:
                                capture_output=True, timeout=10)
             ok += 1 if r.returncode == 0 else 0
         except Exception:
+            swallow("assoc._linux_register")
             continue
     done.append(f"{ok}/{len(mimes())} 个音频类型已指向 TuneKuo")
 
@@ -103,6 +105,7 @@ def _linux_register() -> list:
         try:
             subprocess.run([upd, _desktop_dir()], capture_output=True, timeout=15)
         except Exception:
+            swallow("assoc._linux_register")
             pass
     return done
 
@@ -123,6 +126,7 @@ def _xdg_query(mime: str) -> str:
     try:
         r = subprocess.run([xdg, "query", "default", mime], capture_output=True, timeout=10)
     except Exception:
+        swallow("assoc._xdg_query")
         return ""
     return r.stdout.decode("utf-8", "replace").strip()
 
@@ -266,7 +270,9 @@ def open_default_apps_settings() -> None:
     try:
         os.startfile("ms-settings:defaultapps")
     except Exception:
+        swallow("assoc.open_default_apps_settings")
         try:
             subprocess.Popen(["cmd", "/c", "start", "", "ms-settings:defaultapps"])
         except Exception:
+            swallow("assoc.open_default_apps_settings")
             pass

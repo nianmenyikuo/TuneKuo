@@ -1,4 +1,5 @@
 from __future__ import annotations
+from applog import swallow
 
 import hashlib
 import json
@@ -51,6 +52,7 @@ def cached_lyrics(path: str) -> str:
         with open(lyrics_file(path), "r", encoding="utf-8") as fp:
             return fp.read().strip()
     except Exception:
+        swallow("online.cached_lyrics")
         return ""
 
 def cached_cover(path: str) -> Optional[bytes]:
@@ -59,6 +61,7 @@ def cached_cover(path: str) -> Optional[bytes]:
             data = fp.read()
         return data if _looks_like_image(data) else None
     except Exception:
+        swallow("online.cached_cover")
         return None
 
 def _looks_like_image(data: bytes) -> bool:
@@ -74,6 +77,7 @@ def cached_meta(path: str) -> dict:
         with open(meta_file(path), "r", encoding="utf-8") as fp:
             data = json.load(fp)
     except Exception:
+        swallow("online.cached_meta")
         return {}
     if not isinstance(data, dict):
         return {}
@@ -84,6 +88,7 @@ def save_meta(path: str, info: Info) -> None:
         with open(meta_file(path), "w", encoding="utf-8") as fp:
             json.dump({k: getattr(info, k, "") for k in META_KEYS}, fp, ensure_ascii=False, indent=1)
     except Exception:
+        swallow("online.save_meta")
         pass
 
 def fetch(track: Track) -> Optional[Info]:
@@ -137,6 +142,7 @@ def fetch(track: Track) -> Optional[Info]:
             with open(lyrics_file(track.path), "w", encoding="utf-8") as fp:
                 fp.write(lyrics.strip() + "\n")
         except Exception:
+            swallow("online.fetch")
             pass
 
     cover = None
@@ -148,6 +154,7 @@ def fetch(track: Track) -> Optional[Info]:
                 with open(cover_file(track.path), "wb") as fp:
                     fp.write(data)
             except Exception:
+                swallow("online.fetch")
                 pass
 
     info = Info(m_title, m_artist, m_album, year, genre, meta_source, lyric_source, cover, lyrics)
@@ -176,6 +183,7 @@ def _pick_itunes(results, title: str, artist: str, duration_ms: int):
         try:
             ms = int(o.get("trackTimeMillis") or 0)
         except Exception:
+            swallow("online._pick_itunes")
             ms = 0
         if duration_ms > 0 and ms > 0 and abs(ms - duration_ms) < 5000:
             score += 1
@@ -205,6 +213,7 @@ def _lrclib(title: str, artist: str, album: str, duration_ms: int) -> str:
         try:
             d = int(o.get("duration") or 0)
         except Exception:
+            swallow("online._lrclib")
             d = 0
         if secs > 0 and d > 0 and abs(d - secs) > 5:
             continue
@@ -233,6 +242,7 @@ def _netease_search(query: str, title: str, artist: str, duration_ms: int):
         try:
             d = int(s.get("duration") or 0)
         except Exception:
+            swallow("online._netease_search")
             d = 0
         if duration_ms > 0 and d > 0 and abs(d - duration_ms) < 5000:
             rank += 1
@@ -244,6 +254,7 @@ def _netease_lyrics(song_id) -> str:
     try:
         sid = int(song_id or 0)
     except Exception:
+        swallow("online._netease_lyrics")
         return ""
     if sid <= 0:
         return ""
@@ -251,6 +262,7 @@ def _netease_lyrics(song_id) -> str:
     try:
         return str(((j or {}).get("lrc") or {}).get("lyric") or "").strip()
     except Exception:
+        swallow("online._netease_lyrics")
         return ""
 
 def _get(url: str) -> Optional[bytes]:
@@ -264,6 +276,7 @@ def _get(url: str) -> Optional[bytes]:
                 return None
             return r.read()
     except Exception:
+        swallow("online._get")
         return None
 
 def _json(url: str):
@@ -273,4 +286,5 @@ def _json(url: str):
     try:
         return json.loads(data.decode("utf-8", "replace"))
     except Exception:
+        swallow("online._json")
         return None
