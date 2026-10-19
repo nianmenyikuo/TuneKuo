@@ -10,7 +10,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
-import android.graphics.Paint
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.provider.MediaStore
@@ -32,8 +31,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -67,7 +70,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvMode: TextView
     private lateinit var tvCount: TextView
     private lateinit var seekBar: SeekBar
-    private lateinit var btnPlay: ImageView
+    private lateinit var btnPlay: MaterialButton
     private lateinit var btnMode: TextView
     private lateinit var ivNowCover: ImageView
     private var loadedFor: String? = null
@@ -97,7 +100,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 tvNowTitle.text = e.current!!.title
                 tvNowInfo.text = e.current!!.artist + " · " + e.current!!.album
-                btnPlay.setImageResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+                btnPlay.setIconResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
                 val modeText = when (e.mode) {
                     PlayMode.SEQUENTIAL -> getString(R.string.mode_sequential)
                     PlayMode.REPEAT_LIST -> getString(R.string.mode_repeat_list)
@@ -135,6 +138,16 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootSwipe)) { v, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars()
+                    or WindowInsetsCompat.Type.displayCutout()
+                    or WindowInsetsCompat.Type.ime()
+            )
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
 
         tvNowTitle = findViewById(R.id.tvNowTitle)
         tvNowInfo = findViewById(R.id.tvNowInfo)
@@ -211,7 +224,6 @@ class MainActivity : AppCompatActivity() {
         optJa.setOnClickListener { switchLanguage("ja") }
 
         val fb = findViewById<TextView>(R.id.btnFeedback)
-        fb.paintFlags = fb.paintFlags or Paint.UNDERLINE_TEXT_FLAG
         fb.setOnClickListener {
             try {
                 startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.feedback_url))))
@@ -509,7 +521,7 @@ class MainActivity : AppCompatActivity() {
             tvNowTitle.text = getString(R.string.not_playing)
             tvNowInfo.text = ""
             seekBar.progress = 0
-            btnPlay.setImageResource(R.drawable.ic_play)
+            btnPlay.setIconResource(R.drawable.ic_play)
             ivNowCover.setImageResource(R.drawable.ic_default_cover)
             MediaArtHolder.cover = null
             MediaArtHolder.lyrics = emptyList()

@@ -1,7 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TuneKuo" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="android:statusBarColor">#101018</item>
-        <item name="android:windowBackground">#101018</item>
+    <style name="Theme.TuneKuo" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/tk_primary</item>
+        <item name="colorOnPrimary">@color/tk_on_primary</item>
+        <item name="colorPrimaryContainer">@color/tk_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/tk_on_primary_container</item>
+
+        <item name="colorSecondary">@color/tk_secondary</item>
+        <item name="colorOnSecondary">@color/tk_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/tk_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/tk_on_secondary_container</item>
+
+        <item name="colorTertiary">@color/tk_tertiary</item>
+        <item name="colorOnTertiary">@color/tk_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/tk_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/tk_on_tertiary_container</item>
+
+        <item name="colorError">@color/tk_error</item>
+        <item name="colorOnError">@color/tk_on_error</item>
+        <item name="colorErrorContainer">@color/tk_error_container</item>
+        <item name="colorOnErrorContainer">@color/tk_on_error_container</item>
+
+        <item name="colorSurface">@color/tk_surface</item>
+        <item name="colorOnSurface">@color/tk_on_surface</item>
+        <item name="colorSurfaceVariant">@color/tk_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/tk_on_surface_variant</item>
+        <item name="colorSurfaceContainerLowest">@color/tk_surface_lowest</item>
+        <item name="colorSurfaceContainerLow">@color/tk_surface_low</item>
+        <item name="colorSurfaceContainer">@color/tk_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/tk_surface_high</item>
+        <item name="colorSurfaceContainerHighest">@color/tk_surface_highest</item>
+        <item name="colorSurfaceInverse">@color/tk_on_surface</item>
+        <item name="colorOnSurfaceInverse">@color/tk_surface_low</item>
+        <item name="colorPrimaryInverse">@color/tk_primary_container</item>
+        <item name="colorOutline">@color/tk_outline</item>
+        <item name="colorOutlineVariant">@color/tk_outline_variant</item>
+
+        <item name="android:colorBackground">@color/tk_surface</item>
+        <item name="colorOnBackground">@color/tk_on_surface</item>
+        <item name="android:windowBackground">@color/tk_surface</item>
+        <item name="android:statusBarColor">@color/tk_surface</item>
+        <item name="android:navigationBarColor">@color/tk_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+
+    <style name="ShapeAppearance.TuneKuo.Cover" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
     </style>
 </resources>

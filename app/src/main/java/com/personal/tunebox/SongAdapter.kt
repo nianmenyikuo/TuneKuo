@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.card.MaterialCardView
 
 class SongAdapter(
     private val songs: List<Song>,
@@ -17,6 +18,7 @@ class SongAdapter(
         set(v) { field = v; notifyDataSetChanged() }
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
+        val card: MaterialCardView = v as MaterialCardView
         val tvIndex: TextView = v.findViewById(R.id.tvIndex)
         val tvTitle: TextView = v.findViewById(R.id.tvTitle)
         val tvSub: TextView = v.findViewById(R.id.tvSub)
@@ -41,13 +43,15 @@ class SongAdapter(
             h.tvIndex.setTextColor(0xFF7A7AFF.toInt())
             h.tvTitle.setTextColor(0xFF7A7AFF.toInt())
             h.tvTitle.typeface = Typeface.DEFAULT_BOLD
-            h.itemView.setBackgroundResource(R.drawable.bg_playing)
+            h.card.setCardBackgroundColor(0xFF2A2A55.toInt())
+            h.card.strokeColor = 0xFF7A7AFF.toInt()
         } else {
             h.tvIndex.text = (pos + 1).toString()
             h.tvIndex.setTextColor(0xFF5A5A78.toInt())
             h.tvTitle.setTextColor(0xFFFFFFFF.toInt())
             h.tvTitle.typeface = Typeface.DEFAULT
-            h.itemView.setBackgroundResource(R.drawable.bg_item)
+            h.card.setCardBackgroundColor(0xFF1E1E2A.toInt())
+            h.card.strokeColor = 0x00000000
         }
         h.itemView.setOnClickListener { onClick(s) }
         h.itemView.setOnLongClickListener { onLongClick(s, h.itemView); true }

@@ -1,82 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.personal.tunebox.SwipeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/rootSwipe"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#101018">
+    android:background="@color/tk_surface">
 
     <LinearLayout
         android:id="@+id/pageMain"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#101018">
+        android:background="@color/tk_surface">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="16dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="14dp"
-            android:paddingBottom="6dp">
+            android:paddingStart="20dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/library_title"
-                android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:textColor="@color/tk_on_surface"
+                android:textSize="22sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
                 android:text="@string/scanning"
-                android:textColor="#8888A0"
+                android:textColor="@color/tk_on_surface_variant"
                 android:textSize="12sp" />
 
-            <ImageView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRescan"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:padding="10dp"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:contentDescription="@string/rescan"
-                android:src="@drawable/ic_refresh" />
+                app:icon="@drawable/ic_refresh"
+                app:iconTint="@color/tk_on_surface_variant" />
 
-            <ImageView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSettings"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="10dp"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:contentDescription="@string/settings"
-                android:src="@drawable/ic_settings" />
+                app:icon="@drawable/ic_settings"
+                app:iconTint="@color/tk_on_surface_variant" />
         </LinearLayout>
 
-        <EditText
-            android:id="@+id/etSearch"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/searchBox"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="4dp"
-            android:background="@drawable/bg_search"
-            android:paddingStart="14dp"
-            android:paddingEnd="16dp"
-            android:drawableStart="@drawable/ic_search"
-            android:drawablePadding="10dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="10dp"
             android:hint="@string/search_hint"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#5A5A78"
-            android:textSize="14sp"
-            android:maxLines="1"
-            android:inputType="text"
-            android:imeOptions="actionSearch" />
+            app:boxBackgroundColor="@color/tk_surface_highest"
+            app:boxCornerRadiusBottomEnd="24dp"
+            app:boxCornerRadiusBottomStart="24dp"
+            app:boxCornerRadiusTopEnd="24dp"
+            app:boxCornerRadiusTopStart="24dp"
+            app:boxStrokeColor="@color/tk_outline"
+            app:boxStrokeWidth="1dp"
+            app:boxStrokeWidthFocused="2dp"
+            app:hintTextColor="@color/tk_on_surface_variant"
+            app:startIconDrawable="@drawable/ic_search"
+            app:startIconTint="@color/tk_on_surface_variant">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSearch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
+                android:textColor="@color/tk_on_surface"
+                android:textColorHint="@color/tk_dim"
+                android:textSize="14sp" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvSongs"
@@ -84,150 +99,166 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingTop="4dp"
-            android:paddingBottom="8dp" />
+            android:paddingTop="6dp"
+            android:paddingBottom="10dp" />
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/bg_bottombar"
-            android:padding="12dp">
+            app:cardBackgroundColor="@color/tk_surface_container"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:contentPadding="14dp"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <ImageView
-                    android:id="@+id/ivNowCover"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:scaleType="centerCrop"
-                    android:contentDescription="@string/not_playing"
-                    android:src="@drawable/ic_default_cover" />
+                android:orientation="vertical">
 
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="12dp"
-                    android:orientation="vertical">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                    <TextView
-                        android:id="@+id/tvNowTitle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/not_playing"
-                        android:textColor="#FFFFFF"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:maxLines="1"
-                        android:ellipsize="end" />
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/ivNowCover"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:scaleType="centerCrop"
+                        android:contentDescription="@string/not_playing"
+                        android:src="@drawable/ic_default_cover"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.TuneKuo.Cover" />
 
-                    <TextView
-                        android:id="@+id/tvNowInfo"
-                        android:layout_width="match_parent"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text=""
-                        android:textColor="#8888A0"
-                        android:textSize="12sp"
-                        android:maxLines="1"
-                        android:ellipsize="end" />
+                        android:layout_weight="1"
+                        android:layout_marginStart="14dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvNowTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/not_playing"
+                            android:textColor="@color/tk_on_surface"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+
+                        <TextView
+                            android:id="@+id/tvNowInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text=""
+                            android:textColor="@color/tk_on_surface_variant"
+                            android:textSize="12sp"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLyrics"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:contentDescription="@string/no_lyrics"
+                        app:icon="@drawable/ic_expand"
+                        app:iconTint="@color/tk_on_surface_variant" />
                 </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/btnLyrics"
+                <SeekBar
+                    android:id="@+id/seekBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvTime"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="0:00"
+                        android:textColor="@color/tk_on_surface_variant"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/mode_repeat_list"
+                        android:textColor="@color/tk_on_surface_variant"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="2dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPrev"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:contentDescription="@string/notif_prev"
+                        app:icon="@drawable/ic_prev"
+                        app:iconTint="@color/tk_on_surface" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnPlay"
+                        style="@style/Widget.Material3.Button.IconButton.Filled"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_marginStart="28dp"
+                        android:layout_marginEnd="28dp"
+                        android:contentDescription="@string/notif_play_pause"
+                        app:cornerRadius="32dp"
+                        app:icon="@drawable/ic_play"
+                        app:iconSize="30dp"
+                        app:iconTint="@color/tk_on_primary" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNext"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:contentDescription="@string/notif_next"
+                        app:icon="@drawable/ic_next"
+                        app:iconTint="@color/tk_on_surface" />
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnMode"
+                    style="@style/Widget.Material3.Button.TextButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:padding="12dp"
-                    android:contentDescription="@string/no_lyrics"
-                    android:src="@drawable/ic_expand" />
-            </LinearLayout>
-
-            <SeekBar
-                android:id="@+id/seekBar"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tvTime"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="0:00"
-                    android:textColor="#8888A0"
-                    android:textSize="11sp" />
-
-                <TextView
-                    android:id="@+id/tvMode"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:minWidth="0dp"
                     android:text="@string/mode_repeat_list"
-                    android:textColor="#8888A0"
-                    android:textSize="11sp" />
+                    android:textColor="@color/tk_primary" />
             </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:layout_marginTop="2dp">
-
-                <ImageView
-                    android:id="@+id/btnPrev"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="10dp"
-                    android:contentDescription="@string/notif_prev"
-                    android:src="@drawable/ic_prev" />
-
-                <ImageView
-                    android:id="@+id/btnPlay"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:layout_marginStart="24dp"
-                    android:layout_marginEnd="24dp"
-                    android:padding="18dp"
-                    android:contentDescription="@string/notif_play_pause"
-                    android:src="@drawable/ic_play"
-                    android:background="@drawable/bg_play_button" />
-
-                <ImageView
-                    android:id="@+id/btnNext"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:padding="10dp"
-                    android:contentDescription="@string/notif_next"
-                    android:src="@drawable/ic_next" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/btnMode"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="2dp"
-                android:padding="6dp"
-                android:text="@string/mode_repeat_list"
-                android:textColor="#7A7AFF"
-                android:textSize="12sp" />
-        </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 
     <ScrollView
         android:id="@+id/pageSettings"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#101018"
+        android:background="@color/tk_surface"
         android:visibility="gone">
 
         <LinearLayout
@@ -243,26 +274,27 @@
                 android:id="@+id/btnBack"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="6dp"
                 android:text="@string/back"
-                android:textColor="#B0B0C0"
+                android:textColor="@color/tk_secondary"
                 android:textSize="15sp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="12dp"
                 android:text="@string/settings"
-                android:textColor="#FFFFFF"
-                android:textSize="24sp"
+                android:textColor="@color/tk_on_surface"
+                android:textSize="26sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="26dp"
+                android:layout_marginTop="28dp"
                 android:text="@string/settings_language"
-                android:textColor="#7A7AFF"
+                android:textColor="@color/tk_primary"
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
@@ -270,61 +302,64 @@
                 android:id="@+id/optZh"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="12dp"
                 android:background="@drawable/bg_item"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
                 android:text="@string/lang_zh"
-                android:textColor="#B0B0C0"
+                android:textColor="@color/tk_secondary"
                 android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/optEn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/bg_item"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
                 android:text="@string/lang_en"
-                android:textColor="#B0B0C0"
+                android:textColor="@color/tk_secondary"
                 android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/optJa"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
                 android:background="@drawable/bg_item"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
                 android:text="@string/lang_ja"
-                android:textColor="#B0B0C0"
+                android:textColor="@color/tk_secondary"
                 android:textSize="16sp" />
 
-            <TextView
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFeedback"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="30dp"
-                android:padding="6dp"
+                android:layout_marginTop="26dp"
+                android:minWidth="0dp"
                 android:text="@string/settings_feedback"
-                android:textColor="#7A7AFF"
-                android:textSize="15sp" />
+                android:textColor="@color/tk_primary" />
 
             <TextView
                 android:id="@+id/tvVersion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="40dp"
+                android:layout_marginTop="36dp"
                 android:text=""
-                android:textColor="#5A5A78"
+                android:textColor="@color/tk_dim"
                 android:textSize="12sp" />
         </LinearLayout>
     </ScrollView>
