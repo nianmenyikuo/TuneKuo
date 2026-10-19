@@ -39,16 +39,17 @@ except Exception:
     swallow("ui")
     HAS_PIL = False
 
-BG = "#12121A"
-PANEL = "#1B1B26"
-CARD = "#23232F"
-CARD_HI = "#2E2E52"
-LINE = "#2A2A38"
-FG = "#E8E8F0"
-FG_DIM = "#9A9AB0"
-ACCENT = "#8A8AFF"
-ACCENT_D = "#5A5AE0"
-GREEN = "#4ECB71"
+BG = "#202020"
+PANEL = "#272727"
+CARD = "#2B2B2B"
+CARD_HI = "#364B55"
+LINE = "#3A3A3A"
+FG = "#FFFFFF"
+FG_DIM = "#C5C5C5"
+ACCENT = "#60CDFF"
+ACCENT_D = "#0F6CBD"
+ON_ACCENT = "#003544"
+GREEN = "#6CCB5F"
 
 UI_FONT = "Microsoft YaHei UI"
 ICON_FONT = "Segoe MDL2 Assets"
@@ -72,6 +73,42 @@ else:
     GLYPH_MUSIC = "♪"
     GLYPH_SEARCH = ""
 
+def _shift(color: str, amount: int) -> str:
+    r, g, b = (int(color[i:i + 2], 16) for i in (1, 3, 5))
+    return "#%02X%02X%02X" % (
+        max(0, min(255, r + amount)),
+        max(0, min(255, g + amount)),
+        max(0, min(255, b + amount)),
+    )
+
+def _colorref(color: str) -> int:
+    r = int(color[1:3], 16)
+    g = int(color[3:5], 16)
+    b = int(color[5:7], 16)
+    return (b << 16) | (g << 8) | r
+
+def apply_win_style(root: tk.Tk) -> None:
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+
+        root.update_idletasks()
+        hwnd = ctypes.windll.user32.GetParent(root.winfo_id()) or root.winfo_id()
+        for attr in (20, 19):
+            value = ctypes.c_int(1)
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(value),
+                                                       ctypes.sizeof(value))
+        corner = ctypes.c_int(2)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 33, ctypes.byref(corner),
+                                                   ctypes.sizeof(corner))
+        for attr, color in ((35, BG), (36, FG), (34, LINE)):
+            value = ctypes.c_int(_colorref(color))
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(value),
+                                                       ctypes.sizeof(value))
+    except Exception:
+        swallow("ui.apply_win_style")
+
 def state_dir() -> str:
     return paths.config_dir()
 
@@ -93,14 +130,20 @@ def assets_dir() -> str:
 
 def _pick_fonts() -> None:
     global UI_FONT, ICON_FONT
-    if os.name == "nt":
-        return
     try:
         from tkinter import font as tkfont
 
         families = set(tkfont.families())
     except Exception:
         swallow("ui._pick_fonts")
+        return
+    if os.name == "nt":
+        for name in ("Segoe Fluent Icons", "Segoe MDL2 Assets"):
+            if name in families:
+                ICON_FONT = name
+                break
+        if UI_FONT not in families and "Microsoft YaHei" in families:
+            UI_FONT = "Microsoft YaHei"
         return
     for name in ("Noto Sans CJK SC", "Source Han Sans SC", "Noto Sans SC",
                  "WenQuanYi Micro Hei", "Noto Sans", "DejaVu Sans"):
@@ -161,25 +204,27 @@ class TuneKuoUI:
             swallow("ui.TuneKuoUI._build_style")
             pass
         style.configure("Treeview", background=PANEL, fieldbackground=PANEL, foreground=FG,
-                        rowheight=30, borderwidth=0, font=(UI_FONT, 10))
-        style.configure("Treeview.Heading", background=CARD, foreground=FG_DIM,
+                        rowheight=34, borderwidth=0, font=(UI_FONT, 10))
+        style.configure("Treeview.Heading", background=BG, foreground=FG_DIM,
                         relief="flat", borderwidth=0, font=(UI_FONT, 9))
-        style.map("Treeview", background=[("selected", CARD_HI)], foreground=[("selected", "#FFFFFF")])
-        style.map("Treeview.Heading", background=[("active", CARD)])
-        style.configure("TScrollbar", background=CARD, troughcolor=PANEL, bordercolor=PANEL,
-                        arrowcolor=FG_DIM, relief="flat")
-        style.configure("TScale", background=PANEL, troughcolor=CARD, borderwidth=0,
-                        lightcolor=ACCENT, darkcolor=ACCENT)
+        style.map("Treeview", background=[("selected", CARD_HI)], foreground=[("selected", FG)])
+        style.map("Treeview.Heading", background=[("active", BG)])
+        style.configure("TScrollbar", background=LINE, troughcolor=PANEL, bordercolor=PANEL,
+                        arrowcolor=FG_DIM, relief="flat", arrowsize=12, width=10)
+        style.configure("TScale", background=PANEL, troughcolor=LINE, borderwidth=0,
+                        lightcolor=ACCENT, darkcolor=ACCENT, gripcount=0)
         style.configure("Search.TEntry", fieldbackground=CARD, foreground=FG, borderwidth=0,
                         insertcolor=FG)
 
     def _btn(self, parent, text, command, *, icon=False, width=None, bg=CARD, fg=FG,
              font_size=10, padx=12, pady=6):
         b = tk.Button(parent, text=text, command=command, bg=bg, fg=fg,
-                      activebackground=CARD_HI, activeforeground="#FFFFFF",
+                      activebackground=_shift(bg, -16), activeforeground=fg,
                       relief="flat", bd=0, highlightthickness=0, cursor="hand2",
                       padx=padx, pady=pady,
                       font=(ICON_FONT if icon else UI_FONT, font_size))
+        b.bind("<Enter>", lambda e: b.config(bg=_shift(bg, 14)))
+        b.bind("<Leave>", lambda e: b.config(bg=bg))
         if width:
             b.config(width=width)
         return b
@@ -190,6 +235,7 @@ class TuneKuoUI:
         r.title("TuneKuo")
         r.geometry("1100x720")
         r.minsize(880, 560)
+        apply_win_style(r)
         icon = os.path.join(assets_dir(), "icon.ico" if os.name == "nt" else "icon.png")
         if os.path.isfile(icon):
             try:
@@ -213,12 +259,12 @@ class TuneKuoUI:
         for page in (self.page_main, self.page_settings):
             page.place(x=0, y=0, relwidth=1, relheight=1)
         main = self.page_main
-        main.grid_rowconfigure(1, weight=1)
+        main.grid_rowconfigure(2, weight=1)
         main.grid_columnconfigure(0, weight=1)
 
         top = tk.Frame(main, bg=BG)
-        top.grid(row=0, column=0, sticky="ew", padx=14, pady=(12, 6))
-        tk.Label(top, text="TuneKuo", bg=BG, fg=FG, font=(UI_FONT, 16, "bold")).pack(side="left")
+        top.grid(row=0, column=0, sticky="ew", padx=14, pady=(14, 8))
+        tk.Label(top, text="TuneKuo", bg=BG, fg=FG, font=(UI_FONT, 18, "bold")).pack(side="left")
         self.lb_count = tk.Label(top, text="", bg=BG, fg=FG_DIM, font=(UI_FONT, 9))
         self.lb_count.pack(side="left", padx=(10, 16))
 
@@ -240,6 +286,7 @@ class TuneKuoUI:
         self.var_search = tk.StringVar()
         self.var_search.trace_add("write", lambda *_: self.apply_filter())
         ent = tk.Entry(right_box, textvariable=self.var_search, bg=CARD, fg=FG, bd=0,
+                       highlightthickness=1, highlightbackground=LINE, highlightcolor=ACCENT,
                        insertbackground=FG, font=(UI_FONT, 10), width=26)
         ent.pack(side="right", padx=(0, 6), ipady=6, ipadx=8)
         self.search_entry = ent
@@ -250,8 +297,9 @@ class TuneKuoUI:
             tk.Label(right_box, text=GLYPH_SEARCH, bg=BG, fg=FG_DIM,
                      font=(ICON_FONT, 12)).pack(side="right", padx=(0, 6))
 
+        tk.Frame(main, bg=LINE, height=1).grid(row=1, column=0, sticky="ew", padx=14)
         body = tk.Frame(main, bg=BG)
-        body.grid(row=1, column=0, sticky="nsew", padx=14)
+        body.grid(row=2, column=0, sticky="nsew", padx=14, pady=(10, 0))
         body.grid_rowconfigure(0, weight=1)
         body.grid_columnconfigure(0, weight=3)
         body.grid_columnconfigure(1, weight=2, minsize=340)
@@ -297,7 +345,7 @@ class TuneKuoUI:
         self.lyric_text.grid(row=3, column=0, sticky="nsew", padx=(6, 0))
         self.lyric_text.tag_configure("cur", foreground=ACCENT, font=(UI_FONT, 12, "bold"))
         self.lyric_text.tag_configure("other", foreground=FG_DIM, font=(UI_FONT, 10))
-        self.lyric_text.tag_configure("plain", foreground="#C0C0D0", font=(UI_FONT, 10))
+        self.lyric_text.tag_configure("plain", foreground="#E5E5E5", font=(UI_FONT, 10))
         self.lyric_text.bind("<Button-1>", self.on_lyric_click)
         self.lyric_text.configure(state="disabled")
         lsb = ttk.Scrollbar(right, orient="vertical", command=self.lyric_text.yview)
@@ -305,7 +353,8 @@ class TuneKuoUI:
         self.lyric_text.configure(yscrollcommand=lsb.set)
 
         bottom = tk.Frame(main, bg=PANEL)
-        bottom.grid(row=2, column=0, sticky="ew", padx=14, pady=(8, 12))
+        bottom.grid(row=4, column=0, sticky="ew", padx=14, pady=(0, 12))
+        tk.Frame(main, bg=LINE, height=1).grid(row=3, column=0, sticky="ew", padx=14, pady=(10, 10))
         bottom.grid_columnconfigure(1, weight=1)
 
         self.lb_time = tk.Label(bottom, text="0:00", bg=PANEL, fg=FG_DIM, font=(UI_FONT, 9), width=6, anchor="e")
@@ -324,7 +373,7 @@ class TuneKuoUI:
         self.btn_prev = self._btn(ctl, GLYPH_PREV, self.player.prev_manual, icon=True, font_size=15, padx=10, pady=2)
         self.btn_prev.pack(side="left", padx=2)
         self.btn_play = self._btn(ctl, GLYPH_PLAY, self.toggle_play, icon=True, font_size=18,
-                                  bg=ACCENT, fg="#FFFFFF", padx=16, pady=2)
+                                  bg=ACCENT, fg=ON_ACCENT, padx=18, pady=4)
         self.btn_play.pack(side="left", padx=2)
         self.btn_next = self._btn(ctl, GLYPH_NEXT, self.player.next_manual, icon=True, font_size=15, padx=10, pady=2)
         self.btn_next.pack(side="left", padx=2)
@@ -373,7 +422,7 @@ class TuneKuoUI:
         self.btn_back.pack(side="left")
         self._tip(self.btn_back, "tip.back")
         self.lb_settings_title = tk.Label(head, text=tr("settings.title"), bg=BG, fg=FG,
-                                          font=(UI_FONT, 16, "bold"))
+                                          font=(UI_FONT, 18, "bold"))
         self.lb_settings_title.pack(side="left", padx=(12, 0))
 
         box = tk.Frame(page, bg=PANEL)
@@ -385,7 +434,7 @@ class TuneKuoUI:
         self.lang_labels = {}
         for code, native in LANGS:
             lb = tk.Label(box, text=native, bg=PANEL, fg=FG, font=(UI_FONT, 12), anchor="w",
-                          cursor="hand2", padx=10, pady=6)
+                          cursor="hand2", padx=12, pady=8)
             lb.pack(fill="x", padx=16, pady=2)
             lb.bind("<Button-1>", lambda e, c=code: self.set_lang(c), add="+")
             self.lang_labels[code] = lb
@@ -411,7 +460,7 @@ class TuneKuoUI:
         names = dict(LANGS)
         for code, lb in getattr(self, "lang_labels", {}).items():
             if code == cur:
-                lb.config(text=f"{mark} {names[code]}", bg=CARD_HI, fg=ACCENT,
+                lb.config(text=f"{mark} {names[code]}", bg=CARD_HI, fg=FG,
                           font=(UI_FONT, 12, "bold"))
             else:
                 lb.config(text=names[code], bg=PANEL, fg=FG, font=(UI_FONT, 12))
