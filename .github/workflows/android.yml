@@ -18,7 +18,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
+      - name: 备好 Android SDK 组件
+        run: |
+          sdk="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$sdk" ] || sdk="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | tail -1)"
+          yes | "$sdk" --licenses > /dev/null || true
+          "$sdk" "platforms;android-34" "build-tools;34.0.0"
       - name: 打 debug 包
         run: ./gradlew assembleDebug --no-daemon --console=plain
       - name: 版本号必须来自 VERSION
