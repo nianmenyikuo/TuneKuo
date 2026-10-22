@@ -75,6 +75,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ivNowCover: ImageView
     private var loadedFor: String? = null
 
+    private lateinit var pageNow: View
+    private lateinit var waveform: WaveformView
+    private lateinit var tvBigTitle: TextView
+    private lateinit var tvBigArtist: TextView
+    private lateinit var tvBigTime: TextView
+    private lateinit var btnNowPlay: MaterialButton
+    private lateinit var btnNowMode: MaterialButton
+    private var showingNow = false
+    private var peaksFor: String? = null
+
     private lateinit var rootSwipe: SwipeLayout
     private lateinit var pageMain: View
     private lateinit var pageSettings: View
@@ -100,7 +110,14 @@ class MainActivity : AppCompatActivity() {
                 }
                 tvNowTitle.text = e.current!!.title
                 tvNowInfo.text = e.current!!.artist + " · " + e.current!!.album
+                tvBigTitle.text = e.current!!.title
+                tvBigArtist.text = e.current!!.artist + " · " + e.current!!.album
                 btnPlay.setIconResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+                btnNowPlay.setIconResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+                if (dur > 0) {
+                    waveform.setProgress(e.position.toFloat() / dur.toFloat())
+                    tvBigTime.text = format(e.position) + " / " + format(dur)
+                }
                 val modeText = when (e.mode) {
                     PlayMode.SEQUENTIAL -> getString(R.string.mode_sequential)
                     PlayMode.REPEAT_LIST -> getString(R.string.mode_repeat_list)
@@ -109,6 +126,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 btnMode.text = modeText
                 tvMode.text = modeText
+                btnNowMode.text = modeText
                 if (adapter.playingPath != e.current!!.path)
                     adapter.playingPath = e.current!!.path
                 val cur = e.current!!
@@ -116,8 +134,10 @@ class MainActivity : AppCompatActivity() {
                     loadedFor = cur.path
                     loadArt(cur)
                 }
+                if (peaksFor != cur.path && WaveformPeaks.cached(cur.path) == null) loadPeaks(cur)
             } else {
                 if (adapter.playingPath != null) adapter.playingPath = null
+                waveform.setProgress(0f)
             }
             handler.postDelayed(this, 500)
         }
@@ -158,6 +178,28 @@ class MainActivity : AppCompatActivity() {
         btnPlay = findViewById(R.id.btnPlay)
         btnMode = findViewById(R.id.btnMode)
         ivNowCover = findViewById(R.id.ivNowCover)
+
+        pageNow = findViewById(R.id.pageNow)
+        waveform = findViewById(R.id.waveform)
+        tvBigTitle = findViewById(R.id.tvBigTitle)
+        tvBigArtist = findViewById(R.id.tvBigArtist)
+        tvBigTime = findViewById(R.id.tvBigTime)
+        btnNowPlay = findViewById(R.id.btnNowPlay)
+        btnNowMode = findViewById(R.id.btnNowMode)
+
+        findViewById<View>(R.id.btnNow).setOnClickListener { showNow() }
+        findViewById<View>(R.id.btnNowBack).setOnClickListener { hideNow() }
+        findViewById<View>(R.id.btnNowPrev).setOnClickListener { PlaybackService.engine?.prev() }
+        findViewById<View>(R.id.btnNowNext).setOnClickListener { PlaybackService.engine?.next() }
+        btnNowPlay.setOnClickListener { PlaybackService.engine?.playPause() }
+        btnNowMode.setOnClickListener {
+            val e = PlaybackService.engine ?: return@setOnClickListener
+            e.cycleMode()
+        }
+        waveform.onSeek = { ratio ->
+            val e = PlaybackService.engine
+            if (e != null && e.duration > 0) e.seekTo((ratio * e.duration).toLong())
+        }
 
         findViewById<View>(R.id.btnLyrics).setOnClickListener {
             val e = PlaybackService.engine
@@ -245,8 +287,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun showNow() {
+        if (showingSettings) slideToMain(false)
+        showingNow = true
+        pageNow.visibility = View.VISIBLE
+        pageNow.alpha = 0f
+        pageNow.animate().alpha(1f).setDuration(160).start()
+        rootSwipe.exclude = waveform
+        val e = PlaybackService.engine
+        val cur = e?.current
+        if (cur != null) {
+            waveform.setAmplitudes(WaveformPeaks.cached(cur.path) ?: FloatArray(0))
+            if (peaksFor != cur.path && WaveformPeaks.cached(cur.path) == null) loadPeaks(cur)
+        } else {
+            waveform.setAmplitudes(FloatArray(0))
+        }
+    }
+
+    private fun hideNow() {
+        showingNow = false
+        pageNow.visibility = View.GONE
+        rootSwipe.exclude = seekBar
+    }
+
+    private fun loadPeaks(song: Song) {
+        peaksFor = song.path
+        ui.launch {
+            val amps = WaveformPeaks.load(song.path)
+            val e = PlaybackService.engine ?: return@launch
+            if (e.current?.path != song.path) return@launch
+            waveform.setAmplitudes(amps)
+        }
+    }
+
     private fun slideToSettings(animated: Boolean) {
-        if (showingSettings) return
+        if (showingSettings || showingNow) return
         showingSettings = true
         val w = pageWidth()
         pageSettings.visibility = View.VISIBLE
@@ -314,7 +389,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (showingSettings) slideToMain(true) else super.onBackPressed()
+        if (showingNow) hideNow()
+        else if (showingSettings) slideToMain(true)
+        else super.onBackPressed()
     }
 
     private fun rescan() {

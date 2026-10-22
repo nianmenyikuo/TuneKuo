@@ -68,4 +68,6 @@
     <string name="notif_prev">Previous</string>
     <string name="notif_play_pause">Play / Pause</string>
     <string name="notif_next">Next</string>
+
+    <string name="now_title">Now Playing</string>
 </resources>

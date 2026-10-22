@@ -162,6 +162,15 @@
                     </LinearLayout>
 
                     <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnNow"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:contentDescription="@string/now_title"
+                        app:icon="@drawable/ic_waveform"
+                        app:iconTint="@color/tk_on_surface_variant" />
+
+                    <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnLyrics"
                         style="@style/Widget.Material3.Button.IconButton"
                         android:layout_width="44dp"
@@ -363,4 +372,141 @@
                 android:textSize="12sp" />
         </LinearLayout>
     </ScrollView>
+    <LinearLayout
+        android:id="@+id/pageNow"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/tk_now_bg"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="10dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNowBack"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:minWidth="0dp"
+                android:text="@string/back"
+                android:textColor="@color/tk_secondary" />
+
+            <TextView
+                android:id="@+id/tvNowHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/now_title"
+                android:textColor="@color/tk_on_surface"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvBigTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:text="@string/not_playing"
+                android:textColor="@color/tk_on_surface"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvBigArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text=""
+                android:textColor="@color/tk_on_surface_variant"
+                android:textSize="13sp" />
+
+            <com.personal.tunebox.WaveformView
+                android:id="@+id/waveform"
+                android:layout_width="match_parent"
+                android:layout_height="190dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
+                android:layout_marginTop="28dp" />
+
+            <TextView
+                android:id="@+id/tvBigTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="0:00"
+                android:textColor="@color/tk_on_surface_variant"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNowPrev"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/notif_prev"
+                app:icon="@drawable/ic_prev"
+                app:iconTint="@color/tk_on_surface" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNowPlay"
+                style="@style/Widget.Material3.Button.IconButton.Filled"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginStart="28dp"
+                android:layout_marginEnd="28dp"
+                android:contentDescription="@string/notif_play_pause"
+                app:cornerRadius="32dp"
+                app:icon="@drawable/ic_play"
+                app:iconSize="30dp"
+                app:iconTint="@color/tk_on_primary" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNowNext"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/notif_next"
+                app:icon="@drawable/ic_next"
+                app:iconTint="@color/tk_on_surface" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNowMode"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="18dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:text="@string/mode_repeat_list"
+            android:textColor="@color/tk_primary" />
+    </LinearLayout>
 </com.personal.tunebox.SwipeLayout>

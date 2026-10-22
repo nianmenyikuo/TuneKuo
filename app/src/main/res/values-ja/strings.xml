@@ -68,4 +68,6 @@
     <string name="notif_prev">前へ</string>
     <string name="notif_play_pause">再生 / 一時停止</string>
     <string name="notif_next">次へ</string>
+
+    <string name="now_title">再生中</string>
 </resources>

@@ -34,4 +34,9 @@
     <color name="tk_outline_variant">#2A2A3A</color>
     <color name="tk_dim">#5A5A78</color>
     <color name="tk_ripple">#33FFFFFF</color>
+
+    <color name="tk_now_bg">#222222</color>
+    <color name="tk_wave_dim">#B0B0B0</color>
+    <color name="tk_wave_on">#FFFFFF</color>
+    <color name="tk_wave_pos">#00A8FF</color>
 </resources>

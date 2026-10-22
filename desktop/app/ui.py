@@ -21,6 +21,8 @@ from library import MetaLoader, default_roots, scan_paths
 from metadata import parse_lrc
 from player import PlayMode, Player, Track, fmt_time
 from version import APP_NAME, FEEDBACK_URL, VERSION
+from waveform import WAVE_BG, Waveform
+import peaks
 
 HINTS = {s for s in I18N_TEXT["tool.search_hint"]}
 
@@ -332,6 +334,8 @@ class TuneKuoUI:
         self.cover = tk.Canvas(right, bg=PANEL, height=260, highlightthickness=0)
         self.cover.grid(row=0, column=0, sticky="ew", pady=(14, 8))
         self.cover.bind("<Configure>", lambda e: self._render_cover())
+        self.cover.bind("<Button-1>", lambda e: self.show_now())
+        self.cover.configure(cursor="hand2")
 
         self.lb_now = tk.Label(right, text=tr("not_playing"), bg=PANEL, fg=FG, font=(UI_FONT, 12, "bold"),
                                wraplength=320, justify="center")
@@ -351,6 +355,35 @@ class TuneKuoUI:
         lsb = ttk.Scrollbar(right, orient="vertical", command=self.lyric_text.yview)
         lsb.grid(row=3, column=1, sticky="ns")
         self.lyric_text.configure(yscrollcommand=lsb.set)
+
+        self.page_body = body
+        self.now_open = False
+        self._peaks_pending = set()
+        self.page_now = tk.Frame(body, bg=WAVE_BG)
+        now_head = tk.Frame(self.page_now, bg=WAVE_BG)
+        now_head.pack(fill="x", padx=14, pady=(14, 6))
+        self.btn_now_back = self._btn(now_head, tr("settings.back"), self.hide_now)
+        self.btn_now_back.pack(side="left")
+        self.lb_now_title = tk.Label(now_head, text=tr("now.title"), bg=WAVE_BG, fg=FG,
+                                     font=(UI_FONT, 18, "bold"))
+        self.lb_now_title.pack(side="left", padx=(12, 0))
+
+        stage = tk.Frame(self.page_now, bg=WAVE_BG)
+        stage.pack(expand=True, fill="both")
+        inner = tk.Frame(stage, bg=WAVE_BG)
+        inner.place(relx=0.5, rely=0.5, anchor="center", relwidth=1)
+        self.lb_big = tk.Label(inner, text=tr("not_playing"), bg=WAVE_BG, fg=FG,
+                               font=(UI_FONT, 22, "bold"), wraplength=640, justify="center")
+        self.lb_big.pack()
+        self.lb_big_sub = tk.Label(inner, text="", bg=WAVE_BG, fg=FG_DIM, font=(UI_FONT, 11))
+        self.lb_big_sub.pack(pady=(6, 0))
+        self.wave = Waveform(inner, on_seek=self.seek_ratio, height=190)
+        self.wave.pack(fill="x", padx=60, pady=(26, 12))
+        self.lb_big_time = tk.Label(inner, text="0:00", bg=WAVE_BG, fg=FG_DIM, font=(UI_FONT, 10))
+        self.lb_big_time.pack()
+        self.lb_wave_hint = tk.Label(inner, text=tr("now.hint"), bg=WAVE_BG, fg=FG_DIM,
+                                     font=(UI_FONT, 9))
+        self.lb_wave_hint.pack(pady=(10, 0))
 
         bottom = tk.Frame(main, bg=PANEL)
         bottom.grid(row=4, column=0, sticky="ew", padx=14, pady=(0, 12))
@@ -377,8 +410,12 @@ class TuneKuoUI:
         self.btn_play.pack(side="left", padx=2)
         self.btn_next = self._btn(ctl, GLYPH_NEXT, self.player.next_manual, icon=True, font_size=15, padx=10, pady=2)
         self.btn_next.pack(side="left", padx=2)
+        self.btn_wave = self._btn(ctl, GLYPH_MUSIC, self.show_now, icon=True, font_size=14,
+                                  padx=10, pady=2)
+        self.btn_wave.pack(side="left", padx=2)
         for widget, key in ((self.btn_mode, "tip.mode"), (self.btn_prev, "tip.prev"),
-                            (self.btn_play, "tip.play"), (self.btn_next, "tip.next")):
+                            (self.btn_play, "tip.play"), (self.btn_next, "tip.next"),
+                            (self.btn_wave, "tip.wave")):
             self._tip(widget, key)
 
         self.lb_status = tk.Label(ctl, text=tr("status.ready"), bg=PANEL, fg=FG_DIM, font=(UI_FONT, 9))
@@ -397,7 +434,8 @@ class TuneKuoUI:
         r.bind("<space>", self._on_space)
         r.bind("<Control-o>", lambda e: self.choose_files())
         r.bind("<Control-f>", lambda e: self.search_entry.focus_set())
-        r.bind("<Escape>", self.on_escape)
+        self._esc_orig = self.on_escape
+        r.bind("<Escape>", self._on_escape_now)
         r.bind("<Left>", lambda e: self._on_arrow(-5000))
         r.bind("<Right>", lambda e: self._on_arrow(5000))
         r.bind("<Control-l>", lambda e: self.focus_lyrics())
@@ -497,6 +535,10 @@ class TuneKuoUI:
         self.lb_lang_group.config(text=tr("settings.language"))
         self.lb_feedback.config(text=tr("settings.feedback"))
         self.lb_log.config(text=tr("settings.log"))
+        self.btn_now_back.config(text=tr("settings.back"))
+        self.lb_now_title.config(text=tr("now.title"))
+        self.lb_wave_hint.config(text=tr("now.hint"))
+        self.btn_wave.config(text=GLYPH_MUSIC)
         self._apply_lang_highlight()
         self._update_placeholder()
         self._update_count()
@@ -553,6 +595,67 @@ class TuneKuoUI:
         self._apply_slide()
         self._anim = self.root.after(12, lambda: self._animate(target))
 
+    def show_now(self) -> None:
+        if self.is_settings():
+            self.show_main()
+        cur = self.player.current()
+        self.now_open = True
+        self.page_now.place(in_=self.page_body, x=0, y=0, relwidth=1, relheight=1)
+        self.page_now.lift()
+        if cur:
+            self.wave.set_peaks(peaks.cached(cur.path) or [])
+            self._load_peaks(cur.path)
+        else:
+            self.wave.set_peaks([])
+        self._sync_now()
+
+    def hide_now(self) -> None:
+        self.now_open = False
+        self.page_now.place_forget()
+
+    def seek_ratio(self, ratio) -> None:
+        try:
+            r = max(0.0, min(1.0, float(ratio)))
+        except (TypeError, ValueError):
+            return
+        length = self.player.get_length()
+        if length > 0:
+            self.player.seek(int(r * length))
+            self.wave.set_progress(r)
+
+    def _load_peaks(self, path) -> None:
+        if not path or path in self._peaks_pending:
+            return
+        self._peaks_pending.add(path)
+        peaks.load_async(path, self._peaks_done)
+
+    def _peaks_done(self, path, values) -> None:
+        self.evq.put(("peaks", path, values))
+
+    def _sync_now(self) -> None:
+        cur = self.player.current()
+        if cur:
+            self.lb_big.config(text=cur.display_title)
+            sub = f"{self._artist(cur)} · {cur.album}" if cur.album else self._artist(cur)
+            self.lb_big_sub.config(text=sub)
+        else:
+            self.lb_big.config(text=tr("not_playing"))
+            self.lb_big_sub.config(text="")
+        length = self.player.get_length()
+        pos = self.player.get_time()
+        if length > 0:
+            if not self.seeking:
+                self.wave.set_progress(pos / float(length))
+            self.lb_big_time.config(text=f"{fmt_time(pos)} / {fmt_time(length)}")
+        else:
+            self.lb_big_time.config(text=fmt_time(pos))
+
+    def _on_escape_now(self, event=None):
+        if self.now_open:
+            self.hide_now()
+            return "break"
+        return self._esc_orig(event)
+
     def _apply_slide(self) -> None:
         w = max(1, self.root.winfo_width())
         off = int(round(self.offset * w))
@@ -567,7 +670,7 @@ class TuneKuoUI:
         self._apply_slide()
 
     _NO_DRAG = ("Entry", "Text", "Scale", "Scrollbar", "TScrollbar",
-                "TScale", "Button", "TButton")
+                "TScale", "Button", "TButton", "Canvas")
 
     def _drag_ok(self, widget) -> bool:
         try:
@@ -1083,6 +1186,9 @@ class TuneKuoUI:
                 self.seek.set(min(1000.0, cur * 1000.0 / length))
             self.lb_time.config(text=fmt_time(cur))
 
+        if self.now_open:
+            self._sync_now()
+
         self._update_lyric_line()
         self.root.after(120, self._tick)
 
@@ -1123,6 +1229,11 @@ class TuneKuoUI:
                 self._show_track(track)
         elif kind == "online":
             self._apply_online(a, b)
+        elif kind == "peaks":
+            self._peaks_pending.discard(a)
+            cur = self.player.current()
+            if cur and cur.path == a:
+                self.wave.set_peaks(b)
         elif kind == "path":
             self.root.deiconify()
             self.root.lift()
@@ -1151,6 +1262,9 @@ class TuneKuoUI:
         self.lb_now_sub.config(text=f"{self._artist(t)} · {t.album}" if t.album else self._artist(t))
         self._set_cover(t.cover)
         self._set_lyrics(t)
+        if self.now_open:
+            self._sync_now()
+        self._load_peaks(t.path)
 
     def _set_cover(self, data: Optional[bytes]) -> None:
         self._cover_data = data
