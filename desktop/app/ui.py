@@ -381,9 +381,6 @@ class TuneKuoUI:
         self.wave.pack(fill="x", padx=60, pady=(26, 12))
         self.lb_big_time = tk.Label(inner, text="0:00", bg=WAVE_BG, fg=FG_DIM, font=(UI_FONT, 10))
         self.lb_big_time.pack()
-        self.lb_wave_hint = tk.Label(inner, text=tr("now.hint"), bg=WAVE_BG, fg=FG_DIM,
-                                     font=(UI_FONT, 9))
-        self.lb_wave_hint.pack(pady=(10, 0))
 
         bottom = tk.Frame(main, bg=PANEL)
         bottom.grid(row=4, column=0, sticky="ew", padx=14, pady=(0, 12))
@@ -537,7 +534,6 @@ class TuneKuoUI:
         self.lb_log.config(text=tr("settings.log"))
         self.btn_now_back.config(text=tr("settings.back"))
         self.lb_now_title.config(text=tr("now.title"))
-        self.lb_wave_hint.config(text=tr("now.hint"))
         self.btn_wave.config(text=GLYPH_MUSIC)
         self._apply_lang_highlight()
         self._update_placeholder()

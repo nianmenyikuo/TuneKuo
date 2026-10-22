@@ -129,8 +129,6 @@ TEXT = {
     "settings.log": ("打开日志文件", "Open log file", "ログを開く"),
     "settings.mark": ("●", "●", "●"),
     "now.title": ("正在播放", "Now Playing", "再生中"),
-    "now.hint": ("点一下波形就能跳到那个位置", "Click the waveform to jump to that position",
-                 "波形をクリックするとその位置に移動します"),
     "tip.wave": ("正在播放页", "Now playing page", "再生中ページ"),
 }
 
