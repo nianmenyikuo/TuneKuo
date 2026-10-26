@@ -36,6 +36,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -139,10 +140,10 @@ class MainActivity : AppCompatActivity() {
                     tvBigTime.text = format(e.position) + " / " + format(dur)
                 }
                 val modeText = when (e.mode) {
-                    PlayMode.SEQUENTIAL -> getString(R.string.mode_sequential)
-                    PlayMode.REPEAT_LIST -> getString(R.string.mode_repeat_list)
-                    PlayMode.REPEAT_ONE -> getString(R.string.mode_repeat_one)
-                    else -> getString(R.string.mode_shuffle)
+                    PlayMode.SEQUENTIAL -> gs(R.string.mode_sequential)
+                    PlayMode.REPEAT_LIST -> gs(R.string.mode_repeat_list)
+                    PlayMode.REPEAT_ONE -> gs(R.string.mode_repeat_one)
+                    else -> gs(R.string.mode_shuffle)
                 }
                 btnMode.text = modeText
                 tvMode.text = modeText
@@ -178,6 +179,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        applyCatTexts()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootSwipe)) { v, insets ->
             val bars = insets.getInsets(
@@ -278,7 +280,7 @@ class MainActivity : AppCompatActivity() {
         rootSwipe.onSwipeLeft = { slideToMain(true) }
 
         findViewById<View>(R.id.btnSettings).setOnClickListener { slideToSettings(true) }
-        findViewById<View>(R.id.btnRescan).setOnClickListener { rescan() }
+        findViewById<View>(R.id.btnRescan).setOnClickListener { onRescanTap() }
         findViewById<View>(R.id.btnBack).setOnClickListener { slideToMain(true) }
 
         optZh = findViewById(R.id.optZh)
@@ -291,7 +293,7 @@ class MainActivity : AppCompatActivity() {
         val fb = findViewById<TextView>(R.id.btnFeedback)
         fb.setOnClickListener {
             try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.feedback_url))))
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(gs(R.string.feedback_url))))
             } catch (_: Exception) {
             }
         }
@@ -300,7 +302,7 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {
             ""
         }
-        findViewById<TextView>(R.id.tvVersion).text = getString(R.string.version_fmt, ver)
+        findViewById<TextView>(R.id.tvVersion).text = gs(R.string.version_fmt, ver)
         refreshLanguageOptions()
 
         val prefs = LocaleHelper.pref(this)
@@ -388,9 +390,9 @@ class MainActivity : AppCompatActivity() {
         val cur = LocaleHelper.current(this)
         for ((tag, v) in listOf("zh" to optZh, "en" to optEn, "ja" to optJa)) {
             val label = when (tag) {
-                "en" -> getString(R.string.lang_en)
-                "ja" -> getString(R.string.lang_ja)
-                else -> getString(R.string.lang_zh)
+                "en" -> gs(R.string.lang_en)
+                "ja" -> gs(R.string.lang_ja)
+                else -> gs(R.string.lang_zh)
             }
             if (tag == cur) {
                 v.text = label
@@ -420,10 +422,63 @@ class MainActivity : AppCompatActivity() {
         else super.onBackPressed()
     }
 
+
+    private var rescanTaps = 0
+    private var rescanFirstAt = 0L
+
+    private fun gs(id: Int, vararg args: Any?): String = Cat.s(this, id, *args)
+
+    private fun onRescanTap() {
+        val now = System.currentTimeMillis()
+        if (now - rescanFirstAt > 3000L) {
+            rescanTaps = 0
+            rescanFirstAt = now
+        }
+        rescanTaps++
+        if (rescanTaps >= 3) {
+            rescanTaps = 0
+            rescanFirstAt = 0L
+            val on = Cat.toggle(this)
+            MaterialAlertDialogBuilder(this)
+                .setMessage(if (on) "喵喵喵~" else "喵…")
+                .setCancelable(false)
+                .setPositiveButton("喵") { _, _ -> recreate() }
+                .show()
+        } else {
+            rescan()
+        }
+    }
+
+    private fun applyCatTexts() {
+        findViewById<TextView>(R.id.tvHeader).text = Cat.s(this, R.string.library_title)
+        findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.searchBox).hint = Cat.s(this, R.string.search_hint)
+        findViewById<View>(R.id.ivNowCover).contentDescription = Cat.s(this, R.string.not_playing)
+        findViewById<TextView>(R.id.tvCount).text = Cat.s(this, R.string.scanning)
+        findViewById<View>(R.id.btnRescan).contentDescription = Cat.s(this, R.string.rescan)
+        findViewById<View>(R.id.btnSettings).contentDescription = Cat.s(this, R.string.settings)
+        findViewById<TextView>(R.id.tvNowTitle).text = Cat.s(this, R.string.not_playing)
+        findViewById<View>(R.id.btnNow).contentDescription = Cat.s(this, R.string.now_title)
+        findViewById<View>(R.id.btnLyrics).contentDescription = Cat.s(this, R.string.no_lyrics)
+        findViewById<TextView>(R.id.tvMode).text = Cat.s(this, R.string.mode_repeat_list)
+        findViewById<View>(R.id.btnPrev).contentDescription = Cat.s(this, R.string.notif_prev)
+        findViewById<View>(R.id.btnPlay).contentDescription = Cat.s(this, R.string.notif_play_pause)
+        findViewById<View>(R.id.btnNext).contentDescription = Cat.s(this, R.string.notif_next)
+        findViewById<TextView>(R.id.btnMode).text = Cat.s(this, R.string.mode_repeat_list)
+        findViewById<TextView>(R.id.btnBack).text = Cat.s(this, R.string.back)
+        findViewById<TextView>(R.id.btnFeedback).text = Cat.s(this, R.string.settings_feedback)
+        findViewById<TextView>(R.id.btnNowBack).text = Cat.s(this, R.string.back)
+        findViewById<TextView>(R.id.tvNowHeader).text = Cat.s(this, R.string.now_title)
+        findViewById<TextView>(R.id.tvBigTitle).text = Cat.s(this, R.string.not_playing)
+        findViewById<View>(R.id.btnNowPrev).contentDescription = Cat.s(this, R.string.notif_prev)
+        findViewById<View>(R.id.btnNowPlay).contentDescription = Cat.s(this, R.string.notif_play_pause)
+        findViewById<View>(R.id.btnNowNext).contentDescription = Cat.s(this, R.string.notif_next)
+        findViewById<TextView>(R.id.btnNowMode).text = Cat.s(this, R.string.mode_repeat_list)
+    }
+
     private fun rescan() {
         if (scanning) return
         scanning = true
-        tvCount.text = getString(R.string.scanning)
+        tvCount.text = gs(R.string.scanning)
         showScanUi()
         ui.launch {
             val started = System.currentTimeMillis()
@@ -434,7 +489,7 @@ class MainActivity : AppCompatActivity() {
                 applyFilter()
                 Toast.makeText(
                     this@MainActivity,
-                    getString(R.string.rescan_done, list.size),
+                    gs(R.string.rescan_done, list.size),
                     Toast.LENGTH_SHORT
                 ).show()
             } finally {
@@ -463,7 +518,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun nextTip() {
         tipIndex = (tipIndex + 1) % tipIds.size
-        tvScanTip.text = getString(tipIds[tipIndex])
+        tvScanTip.text = Cat.s(this, tipIds[tipIndex])
     }
 
     private fun applyFilter() {
@@ -475,8 +530,8 @@ class MainActivity : AppCompatActivity() {
             it.album.contains(q, true)
         })
         adapter.notifyDataSetChanged()
-        tvCount.text = if (q.isEmpty()) getString(R.string.count_all, songs.size)
-                       else getString(R.string.count_filtered, display.size, songs.size)
+        tvCount.text = if (q.isEmpty()) gs(R.string.count_all, songs.size)
+                       else gs(R.string.count_filtered, display.size, songs.size)
     }
 
     override fun onResume() {
@@ -521,7 +576,7 @@ class MainActivity : AppCompatActivity() {
     private fun scan() {
         if (scanning) return
         scanning = true
-        tvCount.text = getString(R.string.scanning)
+        tvCount.text = gs(R.string.scanning)
         showScanUi()
         ui.launch {
             val started = System.currentTimeMillis()
@@ -555,11 +610,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun showSongMenu(song: Song, anchor: View) {
         val pop = PopupMenu(this, anchor)
-        pop.menu.add(0, 1, 0, getString(R.string.menu_fetch_info))
-        pop.menu.add(0, 2, 1, getString(R.string.menu_detail))
-        pop.menu.add(0, 3, 2, getString(R.string.menu_copy_title))
-        pop.menu.add(0, 4, 3, getString(R.string.menu_copy_path))
-        pop.menu.add(0, 5, 4, getString(R.string.menu_delete))
+        pop.menu.add(0, 1, 0, gs(R.string.menu_fetch_info))
+        pop.menu.add(0, 2, 1, gs(R.string.menu_detail))
+        pop.menu.add(0, 3, 2, gs(R.string.menu_copy_title))
+        pop.menu.add(0, 4, 3, gs(R.string.menu_copy_path))
+        pop.menu.add(0, 5, 4, gs(R.string.menu_delete))
         pop.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> fetchOnline(song)
@@ -578,7 +633,7 @@ class MainActivity : AppCompatActivity() {
     private fun confirmDelete(song: Song) {
         AlertDialog.Builder(this)
             .setTitle(R.string.menu_delete)
-            .setMessage(getString(R.string.delete_confirm, song.title))
+            .setMessage(gs(R.string.delete_confirm, song.title))
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.delete_ok) { _, _ -> deleteSong(song) }
             .show()
@@ -656,7 +711,7 @@ class MainActivity : AppCompatActivity() {
         applyFilter()
         if (wasCurrent) {
             loadedFor = null
-            tvNowTitle.text = getString(R.string.not_playing)
+            tvNowTitle.text = gs(R.string.not_playing)
             tvNowInfo.text = ""
             seekBar.progress = 0
             btnPlay.setIconResource(R.drawable.ic_play)
@@ -670,7 +725,7 @@ class MainActivity : AppCompatActivity() {
     private fun copyText(text: String) {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText("TuneKuo", text))
-        Toast.makeText(this, getString(R.string.copied), Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, gs(R.string.copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun showDetail(song: Song) {
@@ -690,11 +745,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchOnline(song: Song) {
-        Toast.makeText(this, getString(R.string.fetching_online), Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, gs(R.string.fetching_online), Toast.LENGTH_SHORT).show()
         ui.launch {
             val info = OnlineMeta.fetch(this@MainActivity, song)
             if (info == null) {
-                Toast.makeText(this@MainActivity, getString(R.string.fetch_failed), Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, gs(R.string.fetch_failed), Toast.LENGTH_LONG).show()
                 return@launch
             }
             val i = songs.indexOfFirst { it.path == song.path }
@@ -735,8 +790,8 @@ class MainActivity : AppCompatActivity() {
         if (src.isNotBlank()) sb.append(kv(R.string.detail_source, src)).append('\n')
         sb.append(kv(R.string.detail_cover,
             getString(if (info.cover != null) R.string.got else R.string.not_found))).append('\n')
-        sb.append(if (info.lyrics.isEmpty()) getString(R.string.fetch_lyrics_none)
-                  else getString(R.string.fetch_lyrics_ok, info.lyrics.size))
+        sb.append(if (info.lyrics.isEmpty()) gs(R.string.fetch_lyrics_none)
+                  else gs(R.string.fetch_lyrics_ok, info.lyrics.size))
 
         val b = AlertDialog.Builder(this)
             .setTitle(R.string.menu_fetch_info)
@@ -751,7 +806,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun kv(labelRes: Int, value: String) =
-        getString(R.string.kv_fmt, getString(labelRes), value)
+        gs(R.string.kv_fmt, getString(labelRes), value)
 
     private fun human(bytes: Long): String = when {
         bytes >= 1073741824L -> "%.2f GB".format(bytes / 1073741824.0)

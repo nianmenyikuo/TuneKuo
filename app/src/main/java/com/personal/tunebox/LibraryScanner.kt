@@ -42,8 +42,8 @@ object LibraryScanner {
                             Song(
                                 path = path,
                                 title = c.getString(1) ?: File(path).nameWithoutExtension,
-                                artist = c.getString(2) ?: context.getString(R.string.unknown_artist),
-                                album = c.getString(3) ?: context.getString(R.string.unknown_album),
+                                artist = c.getString(2) ?: Cat.s(context, R.string.unknown_artist),
+                                album = c.getString(3) ?: Cat.s(context, R.string.unknown_album),
                                 durationMs = c.getLong(4),
                                 sizeBytes = c.getLong(5)
                             )
@@ -88,8 +88,8 @@ object LibraryScanner {
                         Song(
                             path = f.absolutePath,
                             title = f.nameWithoutExtension,
-                            artist = context.getString(R.string.unknown_artist),
-                            album = context.getString(R.string.local_file),
+                            artist = Cat.s(context, R.string.unknown_artist),
+                            album = Cat.s(context, R.string.local_file),
                             durationMs = 0L,
                             sizeBytes = f.length()
                         )

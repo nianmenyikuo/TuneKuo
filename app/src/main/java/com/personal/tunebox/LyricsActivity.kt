@@ -84,7 +84,7 @@ class LyricsActivity : AppCompatActivity() {
         })
 
         root.addView(TextView(this).apply {
-            text = song?.title ?: getString(R.string.not_playing)
+            text = song?.title ?: Cat.s(this@LyricsActivity, R.string.not_playing)
             setTextColor(0xFFFFFFFF.toInt())
             textSize = 22f
         })
@@ -97,7 +97,7 @@ class LyricsActivity : AppCompatActivity() {
         scroll = ScrollView(this)
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val list = if (lyrics.isEmpty())
-            listOf(LyricLine(0, getString(R.string.no_lyrics))) else lyrics
+            listOf(LyricLine(0, Cat.s(this@LyricsActivity, R.string.no_lyrics))) else lyrics
         timed = lyrics.any { it.timeMs > 0 }
         tvLines = list.map { line ->
             TextView(this).apply {

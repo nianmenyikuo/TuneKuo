@@ -96,8 +96,8 @@ app.var_search.set("")
 m = app._row_menu(0)
 labels = [m.entrycget(i, "label") for i in range(m.index("end") + 1) if m.type(i) == "command"]
 print("右键菜单    :", labels)
-for want in ("放这首喵", "上网找这首歌的资料（连歌词）喵", "看看这首歌的底细喵", "复制歌名喵", "复制文件路径喵",
-             "在文件夹里找出来喵", "从列表拿掉喵", "删掉文件喵"):
+for want in ("播放", "联网获取歌曲信息（含歌词）", "歌曲详情", "复制歌名", "复制文件路径",
+             "在文件夹中显示", "从列表移除", "删除文件"):
     if want not in labels:
         errors.append(f"右键菜单缺了「{want}」")
 m.destroy()
@@ -111,7 +111,7 @@ except Exception:
 print("剪贴板      :", repr(clip))
 if os.path.normcase(clip) != os.path.normcase(app.player.tracks[0].path):
     errors.append(f"剪贴板内容不对: {clip!r}")
-if app.lb_status.cget("text") != "复制好啦喵":
+if app.lb_status.cget("text") != "已复制到剪贴板":
     errors.append("复制后状态栏不对: " + app.lb_status.cget("text"))
 
 class _FakeBox:
@@ -163,7 +163,7 @@ if not t0.cover:
     errors.append("联网获取的封面没写进曲目")
 if len(fake.calls) < 2 or fake.calls[-1][0] != "info":
     errors.append(f"联网获取成功后没弹信息框: {fake.calls[-1:]}")
-elif "从哪找的喵" not in fake.calls[-1][2]:
+elif "来源" not in fake.calls[-1][2]:
     errors.append("信息框里没有来源行")
 
 row = app.tree.item("0", "values")            
@@ -218,7 +218,7 @@ print("设置页标题  :", repr(app.lb_settings_title.cget("text")),
       "| 返回按钮", repr(app.btn_back.cget("text")))
 print("版本号      :", repr(app.lb_version.cget("text")))
 print("滑动位置    :", round(app.offset, 2), "(1=设置页)")
-if app.lb_settings_title.cget("text") != "设置喵":
+if app.lb_settings_title.cget("text") != "设置":
     errors.append("设置页标题不对: " + app.lb_settings_title.cget("text"))
 if app.offset != 1.0:
     errors.append(f"没有滑到设置页: offset={app.offset}")
@@ -287,10 +287,9 @@ print("\n切语言前    :", "播放中" if app.player.is_playing() else "未播
 if not app.player.is_playing():
     errors.append("切语言前就没在播放，后面的断言不成立")
 lang_group = []
-for code, want in (("en", ("Settings, nya", "Settings, nya", "Title, nya", "← Back, nya", "Language, nya",
-                          "Found a bug or got an idea? Tell the kitty, nya")),
-                   ("ja", ("設定にゃ", "設定にゃ", "タイトルにゃ", "← もどるにゃ", "言語にゃ",
-                           "バグや要望があったら教えてにゃ"))):
+for code, want in (("en", ("Settings", "Settings", "Title", "← Back", "Language",
+                          "Bug reports & feedback")),
+                   ("ja", ("設定", "設定", "タイトル", "← 戻る", "言語", "バグ報告・ご意見"))):
     app.set_lang(code)
     pump(0.3)
     got = (app.lb_settings_title.cget("text"), app.btn_settings.cget("text"),
@@ -320,7 +319,7 @@ pump(0.3)
 back = (app.lb_settings_title.cget("text"), app.tree.heading("title", "text"),
         app.btn_settings.cget("text"), app.btn_back.cget("text"))
 print("切回 zh     :", back)
-if back != ("设置喵", "标题喵", "设置喵", "← 回去喵"):
+if back != ("设置", "标题", "设置", "← 返回"):
     errors.append(f"切回中文失败: {back}")
 
 app.show_main()
@@ -365,7 +364,7 @@ app.load_state()
 pump(0.4)
 print("读回 ja     :", repr(app.lb_settings_title.cget("text")),
       repr(app.btn_settings.cget("text")))
-if (app.lb_settings_title.cget("text"), app.btn_settings.cget("text")) != ("設定にゃ", "設定にゃ"):
+if (app.lb_settings_title.cget("text"), app.btn_settings.cget("text")) != ("設定", "設定"):
     errors.append("没有按 state.json 记住的语言显示")
 if app.lang_labels and app.lang_labels["ja"].cget("text").split()[-1] != "日本語":
     errors.append("日文选项没高亮")
@@ -383,7 +382,7 @@ app.set_lang("zh")
 pump(0.3)
 print("最后切回 zh :", repr(app.btn_settings.cget("text")), "| 列表",
       len(app.tree.get_children()), "| 模型", len(app.player.tracks))
-if app.btn_settings.cget("text") != "设置喵":
+if app.btn_settings.cget("text") != "设置":
     errors.append("最后切回中文失败")
 if len(app.tree.get_children()) != len(app.player.tracks):
     errors.append("切语言后列表被搜索框占位符过滤空了: 树 "
@@ -417,7 +416,7 @@ if os.path.exists(extra):
 if len(app.player.tracks) != m_before - 1 or len(app.tree.get_children()) != n_before - 1:
     errors.append(f"删除后列表没少一行: 树 {len(app.tree.get_children())}/{n_before - 1} "
                   f"模型 {len(app.player.tracks)}/{m_before - 1}")
-if "删掉啦喵" not in app.lb_status.cget("text"):
+if "已删除" not in app.lb_status.cget("text"):
     errors.append("删除后状态栏没提示: " + app.lb_status.cget("text"))
 ui_mod.messagebox = real_box
 

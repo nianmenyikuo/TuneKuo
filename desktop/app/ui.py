@@ -17,7 +17,7 @@ from typing import List, Optional
 import assoc
 import online
 import paths
-from i18n import LANGS, TEXT as I18N_TEXT, current_language, set_language, t as tr
+from i18n import CAT as I18N_CAT, LANGS, TEXT as I18N_TEXT, cat_mode, current_language, set_language, t as tr, toggle_cat
 from library import MetaLoader, default_roots, scan_paths
 from metadata import parse_lrc
 from player import PlayMode, Player, Track, fmt_time
@@ -25,7 +25,7 @@ from version import APP_NAME, FEEDBACK_URL, VERSION
 from waveform import WAVE_BG, Waveform
 import peaks
 
-HINTS = {s for s in I18N_TEXT["tool.search_hint"]}
+HINTS = {s for s in I18N_TEXT["tool.search_hint"]} | {s for s in I18N_CAT["tool.search_hint"]}
 
 
 def _reveal_cmd(path: str) -> list:
@@ -174,6 +174,8 @@ class TuneKuoUI:
         self._cover_photo = None
         self._idx_by_id = {}
         self.gen = 0
+        self._scan_taps = 0
+        self._scan_tap_at = 0.0
 
         self.player = Player(on_event=self._vlc_event)
         self.loader = MetaLoader(on_loaded=self._meta_loaded)
@@ -279,7 +281,7 @@ class TuneKuoUI:
         self.btn_add_files.pack(side="left", padx=3)
         self.btn_add_folder = self._btn(top, tr("tool.add_folder"), self.choose_folder)
         self.btn_add_folder.pack(side="left", padx=3)
-        self.btn_scan = self._btn(top, tr("tool.scan_library"), self.scan_library)
+        self.btn_scan = self._btn(top, tr("tool.scan_library"), self.on_scan_tap)
         self.btn_scan.pack(side="left", padx=3)
 
         right_box = tk.Frame(top, bg=BG)
@@ -1087,6 +1089,25 @@ class TuneKuoUI:
         d = filedialog.askdirectory(title=tr("dlg.choose_folder"))
         if d:
             self.add_paths([d])
+
+    def on_scan_tap(self) -> None:
+        now = time.time()
+        if now - self._scan_tap_at > 3.0:
+            self._scan_taps = 0
+            self._scan_tap_at = now
+        self._scan_taps += 1
+        if self._scan_taps >= 3:
+            self._scan_taps = 0
+            self._scan_tap_at = 0.0
+            on = toggle_cat()
+            msg = "喵喵喵~" if on else "喵…"
+            try:
+                messagebox.showinfo(msg, msg, parent=self.root)
+            except Exception:
+                swallow("ui.TuneKuoUI.on_scan_tap")
+            self._retranslate()
+        else:
+            self.scan_library()
 
     def scan_library(self) -> None:
         roots = default_roots()
