@@ -5,14 +5,20 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioDeviceCallback
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.os.Build
 import android.os.IBinder
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +56,39 @@ class PlaybackService : Service() {
     private lateinit var mySession: MediaSessionCompat
     private var artLoadedFor: String? = null
 
+    private val noisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) pauseIfPlaying()
+        }
+    }
+
+    private val audioDeviceCallback = object : AudioDeviceCallback() {
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
+            val gone = removedDevices ?: return
+            for (d in gone) {
+                if (isBluetooth(d)) {
+                    pauseIfPlaying()
+                    return
+                }
+            }
+        }
+    }
+
+    private fun isBluetooth(d: AudioDeviceInfo): Boolean {
+        if (d.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP) return true
+        if (d.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO) return true
+        if (Build.VERSION.SDK_INT >= 31 && d.type == AudioDeviceInfo.TYPE_BLE_HEADSET) return true
+        if (Build.VERSION.SDK_INT >= 31 && d.type == AudioDeviceInfo.TYPE_BLE_SPEAKER) return true
+        return false
+    }
+
+    private fun pauseIfPlaying() {
+        val e = myEngine
+        if (!e.isPlaying) return
+        e.playPause()
+        updateSession()
+    }
+
     override fun onCreate() {
         super.onCreate()
         startForeground(NOTIF_ID, buildNotification(getString(R.string.notif_ready)))
@@ -79,6 +118,14 @@ class PlaybackService : Service() {
         session = mySession
 
         myEngine.onStateChanged = { updateSession() }
+
+        ContextCompat.registerReceiver(
+            this,
+            noisyReceiver,
+            IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        getSystemService(AudioManager::class.java).registerAudioDeviceCallback(audioDeviceCallback, null)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -93,6 +140,14 @@ class PlaybackService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        try {
+            unregisterReceiver(noisyReceiver)
+        } catch (e: Exception) {
+        }
+        try {
+            getSystemService(AudioManager::class.java).unregisterAudioDeviceCallback(audioDeviceCallback)
+        } catch (e: Exception) {
+        }
         mySession.release()
         session = null
         myEngine.release()
