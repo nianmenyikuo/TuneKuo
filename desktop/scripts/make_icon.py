@@ -27,7 +27,8 @@ def main() -> int:
         print(f"找不到源图：{src}")
         return 1
 
-    master = square(Image.open(src).convert("RGBA"), 256)
+    full = square(Image.open(src).convert("RGBA"), 1024)
+    master = full.resize((256, 256), Image.LANCZOS)
     os.makedirs(os.path.dirname(ICO), exist_ok=True)
     master.save(ICO, format="ICO", sizes=[(s, s) for s in SIZES])
     print(f"已生成 {ICO}  ({os.path.getsize(ICO)} 字节, 尺寸 {SIZES})")
@@ -40,7 +41,7 @@ def main() -> int:
             if not os.path.isdir(os.path.dirname(out)):
                 print(f"跳过 {out}（目录不存在）")
                 continue
-            master.resize((side, side), Image.LANCZOS).save(out, format="PNG")
+            full.resize((side, side), Image.LANCZOS).save(out, format="PNG")
             print(f"已生成 {out}  ({os.path.getsize(out)} 字节, {side}x{side})")
     return 0
 
