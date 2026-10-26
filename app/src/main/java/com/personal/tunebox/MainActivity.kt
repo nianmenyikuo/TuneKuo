@@ -393,7 +393,7 @@ class MainActivity : AppCompatActivity() {
                 else -> getString(R.string.lang_zh)
             }
             if (tag == cur) {
-                v.text = "閴? $label"
+                v.text = "✓ $label"
                 v.setTextColor(0xFFFFFFFF.toInt())
                 v.background = ContextCompat.getDrawable(this, R.drawable.bg_playing)
             } else {
