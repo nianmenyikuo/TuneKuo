@@ -41,16 +41,16 @@ except Exception:
     swallow("ui")
     HAS_PIL = False
 
-BG = "#202020"
-PANEL = "#272727"
-CARD = "#2B2B2B"
-CARD_HI = "#364B55"
-LINE = "#3A3A3A"
+BG = "#14141E"
+PANEL = "#191925"
+CARD = "#1E1E2B"
+CARD_HI = "#2C4A5F"
+LINE = "#2A2A3A"
 FG = "#FFFFFF"
-FG_DIM = "#C5C5C5"
+FG_DIM = "#A9A9BE"
 ACCENT = "#60CDFF"
-ACCENT_D = "#0F6CBD"
-ON_ACCENT = "#003544"
+ACCENT_D = "#1E6E96"
+ON_ACCENT = "#002A3D"
 GREEN = "#6CCB5F"
 
 UI_FONT = "Microsoft YaHei UI"
@@ -1294,8 +1294,8 @@ class TuneKuoUI:
                 swallow("ui.TuneKuoUI._render_cover")
                 pass
         c.create_rectangle(x0, y0, x0 + size, y0 + size, fill=CARD, outline="")
-        c.create_text(w / 2, h / 2 - 14, text=GLYPH_MUSIC, fill="#4A4A66", font=(ICON_FONT, int(size / 4)))
-        c.create_text(w / 2, y0 + size - 26, text=tr("no_cover"), fill="#4A4A66", font=(UI_FONT, 9))
+        c.create_text(w / 2, h / 2 - 14, text=GLYPH_MUSIC, fill="#3E4A5C", font=(ICON_FONT, int(size / 4)))
+        c.create_text(w / 2, y0 + size - 26, text=tr("no_cover"), fill="#3E4A5C", font=(UI_FONT, 9))
 
     def _set_lyrics(self, t: Track) -> None:
         self.lyric_text.configure(state="normal")

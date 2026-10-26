@@ -40,17 +40,17 @@ class SongAdapter(
         h.tvDuration.text = format(s.durationMs)
         if (playing) {
             h.tvIndex.text = "♪"
-            h.tvIndex.setTextColor(0xFF7A7AFF.toInt())
-            h.tvTitle.setTextColor(0xFF7A7AFF.toInt())
+            h.tvIndex.setTextColor(0xFF60CDFF.toInt())
+            h.tvTitle.setTextColor(0xFF60CDFF.toInt())
             h.tvTitle.typeface = Typeface.DEFAULT_BOLD
-            h.card.setCardBackgroundColor(0xFF2A2A55.toInt())
-            h.card.strokeColor = 0xFF7A7AFF.toInt()
+            h.card.setCardBackgroundColor(0xFF12384C.toInt())
+            h.card.strokeColor = 0xFF60CDFF.toInt()
         } else {
             h.tvIndex.text = (pos + 1).toString()
-            h.tvIndex.setTextColor(0xFF5A5A78.toInt())
+            h.tvIndex.setTextColor(0xFF6C7A8C.toInt())
             h.tvTitle.setTextColor(0xFFFFFFFF.toInt())
             h.tvTitle.typeface = Typeface.DEFAULT
-            h.card.setCardBackgroundColor(0xFF1E1E2A.toInt())
+            h.card.setCardBackgroundColor(0xFF1E1E2B.toInt())
             h.card.strokeColor = 0x00000000
         }
         h.itemView.setOnClickListener { onClick(s) }

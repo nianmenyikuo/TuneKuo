@@ -375,7 +375,7 @@ class MainActivity : AppCompatActivity() {
                 v.background = ContextCompat.getDrawable(this, R.drawable.bg_playing)
             } else {
                 v.text = label
-                v.setTextColor(0xFFB0B0C0.toInt())
+                v.setTextColor(0xFF9AA6B4.toInt())
                 v.background = ContextCompat.getDrawable(this, R.drawable.bg_item)
             }
         }

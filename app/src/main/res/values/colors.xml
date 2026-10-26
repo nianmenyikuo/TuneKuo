@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="tk_primary">#7A7AFF</color>
-    <color name="tk_on_primary">#0B0B1C</color>
-    <color name="tk_primary_container">#2A2A55</color>
-    <color name="tk_on_primary_container">#DEDEFF</color>
+    <color name="tk_primary">#60CDFF</color>
+    <color name="tk_on_primary">#00344A</color>
+    <color name="tk_primary_container">#12384C</color>
+    <color name="tk_on_primary_container">#C6E9FF</color>
 
-    <color name="tk_secondary">#B0B0C0</color>
-    <color name="tk_on_secondary">#1A1A24</color>
-    <color name="tk_secondary_container">#33334A</color>
-    <color name="tk_on_secondary_container">#E4E4F0</color>
+    <color name="tk_secondary">#9BC9DE</color>
+    <color name="tk_on_secondary">#0A2532</color>
+    <color name="tk_secondary_container">#1B3140</color>
+    <color name="tk_on_secondary_container">#D3E9F5</color>
 
-    <color name="tk_tertiary">#7CD8C8</color>
-    <color name="tk_on_tertiary">#04211C</color>
-    <color name="tk_tertiary_container">#1E4A44</color>
-    <color name="tk_on_tertiary_container">#C6F2EA</color>
+    <color name="tk_tertiary">#86DCCB</color>
+    <color name="tk_on_tertiary">#00382F</color>
+    <color name="tk_tertiary_container">#123F38</color>
+    <color name="tk_on_tertiary_container">#A6F2E3</color>
 
     <color name="tk_error">#FFB4AB</color>
     <color name="tk_on_error">#690005</color>
@@ -22,17 +22,17 @@
 
     <color name="tk_surface">#101018</color>
     <color name="tk_on_surface">#FFFFFF</color>
-    <color name="tk_surface_variant">#23232F</color>
-    <color name="tk_on_surface_variant">#8888A0</color>
+    <color name="tk_surface_variant">#1E1E2B</color>
+    <color name="tk_on_surface_variant">#9AA6B4</color>
     <color name="tk_surface_lowest">#0B0B12</color>
-    <color name="tk_surface_low">#16161F</color>
-    <color name="tk_surface_container">#1A1A26</color>
-    <color name="tk_surface_high">#1E1E2A</color>
-    <color name="tk_surface_highest">#23232F</color>
+    <color name="tk_surface_low">#14141E</color>
+    <color name="tk_surface_container">#191925</color>
+    <color name="tk_surface_high">#1E1E2B</color>
+    <color name="tk_surface_highest">#242432</color>
 
-    <color name="tk_outline">#33334A</color>
+    <color name="tk_outline">#2C4A5F</color>
     <color name="tk_outline_variant">#2A2A3A</color>
-    <color name="tk_dim">#5A5A78</color>
+    <color name="tk_dim">#6C7A8C</color>
     <color name="tk_ripple">#33FFFFFF</color>
 
     <color name="tk_now_bg">#222222</color>

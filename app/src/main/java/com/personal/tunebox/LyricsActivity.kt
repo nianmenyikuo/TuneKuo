@@ -43,7 +43,7 @@ class LyricsActivity : AppCompatActivity() {
                         tvLines[i].setTextColor(0xFFFFFFFF.toInt())
                         tvLines[i].textSize = 20f
                     } else {
-                        tvLines[i].setTextColor(0xFF8888A0.toInt())
+                        tvLines[i].setTextColor(0xFF9AA6B4.toInt())
                         tvLines[i].textSize = 16f
                     }
                 }
@@ -90,7 +90,7 @@ class LyricsActivity : AppCompatActivity() {
         })
         root.addView(TextView(this).apply {
             text = (song?.artist ?: "") + " · " + (song?.album ?: "")
-            setTextColor(0xFF8888A0.toInt())
+            setTextColor(0xFF9AA6B4.toInt())
             textSize = 13f
         })
 
@@ -102,7 +102,7 @@ class LyricsActivity : AppCompatActivity() {
         tvLines = list.map { line ->
             TextView(this).apply {
                 text = line.text
-                setTextColor(if (timed) 0xFF8888A0.toInt() else 0xFFFFFFFF.toInt())
+                setTextColor(if (timed) 0xFF9AA6B4.toInt() else 0xFFFFFFFF.toInt())
                 textSize = 16f
                 setPadding(0, 24, 0, 24)
                 setLineSpacing(0f, 1.2f)
