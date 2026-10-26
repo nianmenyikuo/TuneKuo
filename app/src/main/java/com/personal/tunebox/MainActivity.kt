@@ -129,9 +129,9 @@ class MainActivity : AppCompatActivity() {
                     tvTime.text = format(e.position) + " / " + format(dur)
                 }
                 tvNowTitle.text = e.current!!.title
-                tvNowInfo.text = e.current!!.artist + " 璺?" + e.current!!.album
+                tvNowInfo.text = e.current!!.artist + " · " + e.current!!.album
                 tvBigTitle.text = e.current!!.title
-                tvBigArtist.text = e.current!!.artist + " 璺?" + e.current!!.album
+                tvBigArtist.text = e.current!!.artist + " · " + e.current!!.album
                 btnPlay.setIconResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
                 btnNowPlay.setIconResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
                 if (dur > 0) {
@@ -393,13 +393,16 @@ class MainActivity : AppCompatActivity() {
                 else -> getString(R.string.lang_zh)
             }
             if (tag == cur) {
-                v.text = "✓ $label"
+                v.text = label
                 v.setTextColor(0xFFFFFFFF.toInt())
                 v.background = ContextCompat.getDrawable(this, R.drawable.bg_playing)
+                v.setCompoundDrawablesRelativeWithIntrinsicBounds(R.drawable.ic_check, 0, 0, 0)
+                v.compoundDrawablePadding = (8 * resources.displayMetrics.density).toInt()
             } else {
                 v.text = label
                 v.setTextColor(0xFF9AA6B4.toInt())
                 v.background = ContextCompat.getDrawable(this, R.drawable.bg_item)
+                v.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
             }
         }
     }
@@ -489,7 +492,6 @@ class MainActivity : AppCompatActivity() {
     private fun requestPermissionAndScan() {
         val perms = ArrayList<String>(2)
         if (!hasRead()) perms.add(readPermission)
-        // Android 10 閸欏﹣浜掓稉瀣灩閺傚洣娆㈢憰浣稿晸閺夊啴妾洪敍?1 鐠х柉铔嬬化鑽ょ埠閻ㄥ嫬鍨归梽銈堫嚞濮瑰偊绱濇稉宥夋付鐟曚焦娼堥梽鎰剁礆
         if (Build.VERSION.SDK_INT <= 29 && !hasWrite()) {
             perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
@@ -729,7 +731,7 @@ class MainActivity : AppCompatActivity() {
         if (info.album.isNotBlank()) sb.append(kv(R.string.detail_album, info.album)).append('\n')
         if (info.year.isNotBlank()) sb.append(kv(R.string.detail_year, info.year)).append('\n')
         if (info.genre.isNotBlank()) sb.append(kv(R.string.detail_genre, info.genre)).append('\n')
-        val src = listOf(info.metaSource, info.lyricSource).filter { it.isNotBlank() }.joinToString(" 璺?")
+        val src = listOf(info.metaSource, info.lyricSource).filter { it.isNotBlank() }.joinToString(" · ")
         if (src.isNotBlank()) sb.append(kv(R.string.detail_source, src)).append('\n')
         sb.append(kv(R.string.detail_cover,
             getString(if (info.cover != null) R.string.got else R.string.not_found))).append('\n')
