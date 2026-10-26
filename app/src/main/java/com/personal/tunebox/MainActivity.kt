@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -94,6 +95,25 @@ class MainActivity : AppCompatActivity() {
     private var showingSettings = false
     private var scanning = false
 
+    private lateinit var scanBox: View
+    private lateinit var scanAnim: ScanIndicatorView
+    private lateinit var tvScanTip: TextView
+    private var tipIndex = -1
+    private val tipIds = intArrayOf(
+        R.string.scan_tip_1, R.string.scan_tip_2, R.string.scan_tip_3,
+        R.string.scan_tip_4, R.string.scan_tip_5, R.string.scan_tip_6,
+        R.string.scan_tip_7, R.string.scan_tip_8, R.string.scan_tip_9,
+        R.string.scan_tip_10
+    )
+    private val minScanUi = 1600L
+    private val tipInterval = 2600L
+    private val tipRunnable = object : Runnable {
+        override fun run() {
+            nextTip()
+            handler.postDelayed(this, tipInterval)
+        }
+    }
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LocaleHelper.wrap(newBase))
     }
@@ -109,9 +129,9 @@ class MainActivity : AppCompatActivity() {
                     tvTime.text = format(e.position) + " / " + format(dur)
                 }
                 tvNowTitle.text = e.current!!.title
-                tvNowInfo.text = e.current!!.artist + " · " + e.current!!.album
+                tvNowInfo.text = e.current!!.artist + " 璺?" + e.current!!.album
                 tvBigTitle.text = e.current!!.title
-                tvBigArtist.text = e.current!!.artist + " · " + e.current!!.album
+                tvBigArtist.text = e.current!!.artist + " 璺?" + e.current!!.album
                 btnPlay.setIconResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
                 btnNowPlay.setIconResource(if (e.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
                 if (dur > 0) {
@@ -174,6 +194,9 @@ class MainActivity : AppCompatActivity() {
         tvTime = findViewById(R.id.tvTime)
         tvMode = findViewById(R.id.tvMode)
         tvCount = findViewById(R.id.tvCount)
+        scanBox = findViewById(R.id.scanBox)
+        scanAnim = findViewById(R.id.scanAnim)
+        tvScanTip = findViewById(R.id.tvScanTip)
         seekBar = findViewById(R.id.seekBar)
         btnPlay = findViewById(R.id.btnPlay)
         btnMode = findViewById(R.id.btnMode)
@@ -370,7 +393,7 @@ class MainActivity : AppCompatActivity() {
                 else -> getString(R.string.lang_zh)
             }
             if (tag == cur) {
-                v.text = "✓  $label"
+                v.text = "閴? $label"
                 v.setTextColor(0xFFFFFFFF.toInt())
                 v.background = ContextCompat.getDrawable(this, R.drawable.bg_playing)
             } else {
@@ -398,18 +421,46 @@ class MainActivity : AppCompatActivity() {
         if (scanning) return
         scanning = true
         tvCount.text = getString(R.string.scanning)
+        showScanUi()
         ui.launch {
-            val list = withContext(Dispatchers.IO) { LibraryScanner.scan(this@MainActivity) }
-            songs.clear()
-            songs.addAll(list)
-            scanning = false
-            applyFilter()
-            Toast.makeText(
-                this@MainActivity,
-                getString(R.string.rescan_done, list.size),
-                Toast.LENGTH_SHORT
-            ).show()
+            val started = System.currentTimeMillis()
+            try {
+                val list = withContext(Dispatchers.IO) { LibraryScanner.scan(this@MainActivity) }
+                songs.clear()
+                songs.addAll(list)
+                applyFilter()
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.rescan_done, list.size),
+                    Toast.LENGTH_SHORT
+                ).show()
+            } finally {
+                val wait = minScanUi - (System.currentTimeMillis() - started)
+                if (wait > 0) delay(wait)
+                scanning = false
+                hideScanUi()
+            }
         }
+    }
+
+    private fun showScanUi() {
+        scanBox.visibility = View.VISIBLE
+        scanAnim.start()
+        tipIndex = -1
+        nextTip()
+        handler.removeCallbacks(tipRunnable)
+        handler.postDelayed(tipRunnable, tipInterval)
+    }
+
+    private fun hideScanUi() {
+        handler.removeCallbacks(tipRunnable)
+        scanAnim.stop()
+        scanBox.visibility = View.GONE
+    }
+
+    private fun nextTip() {
+        tipIndex = (tipIndex + 1) % tipIds.size
+        tvScanTip.text = getString(tipIds[tipIndex])
     }
 
     private fun applyFilter() {
@@ -438,7 +489,7 @@ class MainActivity : AppCompatActivity() {
     private fun requestPermissionAndScan() {
         val perms = ArrayList<String>(2)
         if (!hasRead()) perms.add(readPermission)
-        // Android 10 及以下删文件要写权限（11 起走系统的删除请求，不需要权限）
+        // Android 10 閸欏﹣浜掓稉瀣灩閺傚洣娆㈢憰浣稿晸閺夊啴妾洪敍?1 鐠х柉铔嬬化鑽ょ埠閻ㄥ嫬鍨归梽銈堫嚞濮瑰偊绱濇稉宥夋付鐟曚焦娼堥梽鎰剁礆
         if (Build.VERSION.SDK_INT <= 29 && !hasWrite()) {
             perms.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
@@ -469,12 +520,20 @@ class MainActivity : AppCompatActivity() {
         if (scanning) return
         scanning = true
         tvCount.text = getString(R.string.scanning)
+        showScanUi()
         ui.launch {
-            val list = withContext(Dispatchers.IO) { LibraryScanner.scan(this@MainActivity) }
-            songs.clear()
-            songs.addAll(list)
-            scanning = false
-            applyFilter()
+            val started = System.currentTimeMillis()
+            try {
+                val list = withContext(Dispatchers.IO) { LibraryScanner.scan(this@MainActivity) }
+                songs.clear()
+                songs.addAll(list)
+                applyFilter()
+            } finally {
+                val wait = minScanUi - (System.currentTimeMillis() - started)
+                if (wait > 0) delay(wait)
+                scanning = false
+                hideScanUi()
+            }
         }
     }
 
@@ -670,7 +729,7 @@ class MainActivity : AppCompatActivity() {
         if (info.album.isNotBlank()) sb.append(kv(R.string.detail_album, info.album)).append('\n')
         if (info.year.isNotBlank()) sb.append(kv(R.string.detail_year, info.year)).append('\n')
         if (info.genre.isNotBlank()) sb.append(kv(R.string.detail_genre, info.genre)).append('\n')
-        val src = listOf(info.metaSource, info.lyricSource).filter { it.isNotBlank() }.joinToString(" · ")
+        val src = listOf(info.metaSource, info.lyricSource).filter { it.isNotBlank() }.joinToString(" 璺?")
         if (src.isNotBlank()) sb.append(kv(R.string.detail_source, src)).append('\n')
         sb.append(kv(R.string.detail_cover,
             getString(if (info.cover != null) R.string.got else R.string.not_found))).append('\n')

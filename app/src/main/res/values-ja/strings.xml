@@ -70,4 +70,15 @@
     <string name="notif_next">次へ</string>
 
     <string name="now_title">再生中</string>
+
+    <string name="scan_tip_1">にゃ〜、小さな肉球であちこち歌をかき集めてるよ</string>
+    <string name="scan_tip_2">ご主人様ちょっと待ってにゃ、今においで探してる〜</string>
+    <string name="scan_tip_3">いち、に、さん…にゃ、急かしちゃだめだよ</string>
+    <string name="scan_tip_4">見つけた！お口にくわえておうちに運ぶにゃ〜</string>
+    <string name="scan_tip_5">お耳を立てて聞いてるにゃ、音がしたら飛びつくよ</string>
+    <string name="scan_tip_6">曲の草むらをごそごそ…むにゃむにゃ</string>
+    <string name="scan_tip_7">もうすぐだよ、その間は頭をなでてにゃ</string>
+    <string name="scan_tip_8">このフォルダ、毛糸みたいに絡まってるにゃ…少しずつほどくね</string>
+    <string name="scan_tip_9">自分のしっぽに夢中になっちゃった…にゃ、続けるよ！</string>
+    <string name="scan_tip_10">ぜんぶ運んだよ！ご主人様、なでなでしていいにゃ〜</string>
 </resources>

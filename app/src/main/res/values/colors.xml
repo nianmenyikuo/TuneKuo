@@ -4,6 +4,7 @@
     <color name="tk_on_primary">#00344A</color>
     <color name="tk_primary_container">#12384C</color>
     <color name="tk_on_primary_container">#C6E9FF</color>
+    <color name="tk_scan_scrim">#F5101018</color>
 
     <color name="tk_secondary">#9BC9DE</color>
     <color name="tk_on_secondary">#0A2532</color>

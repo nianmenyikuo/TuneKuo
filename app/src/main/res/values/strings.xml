@@ -74,4 +74,15 @@
     <string name="notif_play_pause">播放暂停</string>
     <string name="notif_next">下一首</string>
     <string name="now_title">正在播放</string>
+
+    <string name="scan_tip_1">喵～正用小爪子在每个角落扒拉你的歌哦</string>
+    <string name="scan_tip_2">主人稍等喵，猫猫在闻歌的味道～</string>
+    <string name="scan_tip_3">一首一首数着喵，不许催人家啦</string>
+    <string name="scan_tip_4">找到啦！猫猫叼进窝里放好了喵～</string>
+    <string name="scan_tip_5">耳朵竖起来听着呢，哪有声音就扑过去喵</string>
+    <string name="scan_tip_6">在曲库的草丛里翻来翻去…喵呜</string>
+    <string name="scan_tip_7">很快就好啦，先摸摸猫猫的头嘛喵</string>
+    <string name="scan_tip_8">这个文件夹乱得像毛线球喵…猫猫慢慢理</string>
+    <string name="scan_tip_9">数到一半被自己尾巴吸引走了…喵，继续！</string>
+    <string name="scan_tip_10">全部叼回来啦喵！可以摸摸猫猫了</string>
 </resources>

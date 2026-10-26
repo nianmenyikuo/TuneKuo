@@ -70,4 +70,15 @@
     <string name="notif_next">Next</string>
 
     <string name="now_title">Now Playing</string>
+
+    <string name="scan_tip_1">Nyaa~ digging through every corner with tiny paws</string>
+    <string name="scan_tip_2">Hold on, meowster~ kitty is sniffing out the tunes</string>
+    <string name="scan_tip_3">Counting one by one, nya~ no rushing the kitty</string>
+    <string name="scan_tip_4">Found one! Carrying it home in my mouth, nyaa~</string>
+    <string name="scan_tip_5">Ears up and listening, meow~ I pounce at every sound</string>
+    <string name="scan_tip_6">Rummaging through the song bushes… mrrp</string>
+    <string name="scan_tip_7">Almost done~ pat the kitty on the head meanwhile, nya</string>
+    <string name="scan_tip_8">This folder is tangled like a yarn ball… kitty will sort it, meow</string>
+    <string name="scan_tip_9">Got distracted by my own tail… nya, continuing!</string>
+    <string name="scan_tip_10">All fetched home! You may pet the kitty now, meow~</string>
 </resources>
