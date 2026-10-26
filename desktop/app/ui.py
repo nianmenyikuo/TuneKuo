@@ -8,6 +8,7 @@ import queue
 import shutil
 import subprocess
 import threading
+import time
 import tkinter as tk
 import webbrowser
 from tkinter import filedialog, messagebox, ttk
@@ -52,6 +53,10 @@ ACCENT = "#60CDFF"
 ACCENT_D = "#1E6E96"
 ON_ACCENT = "#002A3D"
 GREEN = "#6CCB5F"
+
+SCAN_MIN_S = 1.6
+SCAN_TIP_MS = 2600
+SCAN_TIP_COUNT = 10
 
 UI_FONT = "Microsoft YaHei UI"
 ICON_FONT = "Segoe MDL2 Assets"
@@ -325,6 +330,17 @@ class TuneKuoUI:
         self.tree.bind("<Return>", self.on_row_play)
         self.tree.bind("<Button-3>", self.on_row_menu)
         self.tree.tag_configure("playing", foreground=ACCENT)
+
+        self.scan_box = tk.Frame(left, bg=PANEL)
+        self.scan_inner = tk.Frame(self.scan_box, bg=PANEL)
+        self.scan_canvas = tk.Canvas(self.scan_inner, width=68, height=68, bg=PANEL,
+                                     highlightthickness=0)
+        self.scan_canvas.pack()
+        self._scan_arc = self.scan_canvas.create_arc(7, 7, 61, 61, start=0, extent=245,
+                                                     style="arc", outline=ACCENT, width=3)
+        self.lb_scan_tip = tk.Label(self.scan_inner, bg=PANEL, fg=FG_DIM, font=(UI_FONT, 10),
+                                    wraplength=320, justify="center")
+        self.lb_scan_tip.pack(pady=(16, 0))
 
         right = tk.Frame(body, bg=PANEL)
         right.grid(row=0, column=1, sticky="nsew")
@@ -811,8 +827,10 @@ class TuneKuoUI:
             swallow("ui.TuneKuoUI._refresh_status")
             pass
 
-    def add_paths(self, paths: List[str], autoplay: bool = True) -> None:
-        files = scan_paths(paths)
+    def add_paths(self, paths: List[str], autoplay: bool = True,
+                  files: Optional[List[str]] = None) -> None:
+        if files is None:
+            files = scan_paths(paths)
         if not files:
             self.set_status(key="status.no_audio")
             return
@@ -1076,8 +1094,76 @@ class TuneKuoUI:
             self.set_status(key="status.no_music_dir")
             return
         self.set_status(key="status.scanning")
-        self.root.update_idletasks()
-        self.add_paths(roots)
+        self.show_scan_ui()
+
+        def work() -> None:
+            try:
+                found = scan_paths(roots)
+            except Exception:
+                swallow("ui.TuneKuoUI.scan_library")
+                found = []
+            self.evq.put(("scan", roots, found))
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def show_scan_ui(self) -> None:
+        self._scan_t0 = time.time()
+        self._scan_visible = True
+        self._scan_angle = 0
+        self._scan_tip = 0
+        self.lb_scan_tip.config(text=tr("scan.tip1"))
+        self.scan_box.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self.scan_inner.place(relx=0.5, rely=0.5, anchor="center")
+        self.scan_box.lift()
+        self._scan_spin()
+        self._scan_tip_after()
+
+    def hide_scan_ui(self) -> None:
+        self._scan_visible = False
+        try:
+            self.scan_box.place_forget()
+        except Exception:
+            swallow("ui.TuneKuoUI.hide_scan_ui")
+
+    def _scan_spin(self) -> None:
+        if not getattr(self, "_scan_visible", False):
+            return
+        self._scan_angle = (self._scan_angle + 18) % 360
+        try:
+            self.scan_canvas.itemconfigure(self._scan_arc, start=self._scan_angle)
+        except Exception:
+            swallow("ui.TuneKuoUI._scan_spin")
+            return
+        self.root.after(40, self._scan_spin)
+
+    def _scan_tip_after(self) -> None:
+        if not getattr(self, "_scan_visible", False):
+            return
+        self.root.after(SCAN_TIP_MS, self._scan_tip_next)
+
+    def _scan_tip_next(self) -> None:
+        if not getattr(self, "_scan_visible", False):
+            return
+        self._scan_tip = (self._scan_tip + 1) % SCAN_TIP_COUNT
+        try:
+            self.lb_scan_tip.config(text=tr("scan.tip%d" % (self._scan_tip + 1)))
+        except Exception:
+            swallow("ui.TuneKuoUI._scan_tip_next")
+        self._scan_tip_after()
+
+    def _scan_done(self, roots, found) -> None:
+        wait = SCAN_MIN_S - (time.time() - getattr(self, "_scan_t0", 0.0))
+        if wait > 0:
+            self.root.after(int(wait * 1000), lambda: self._scan_apply(roots, found))
+        else:
+            self._scan_apply(roots, found)
+
+    def _scan_apply(self, roots, found) -> None:
+        self.hide_scan_ui()
+        if not found:
+            self.set_status(key="status.no_audio")
+            return
+        self.add_paths(roots, files=found)
         self.set_status(key="status.scanned", n=len(self.player.tracks))
 
     def register_default(self) -> None:
@@ -1230,6 +1316,8 @@ class TuneKuoUI:
             cur = self.player.current()
             if cur and cur.path == a:
                 self.wave.set_peaks(b)
+        elif kind == "scan":
+            self._scan_done(a, b)
         elif kind == "path":
             self.root.deiconify()
             self.root.lift()
