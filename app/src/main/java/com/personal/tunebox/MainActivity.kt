@@ -1,7 +1,6 @@
 package com.personal.tunebox
 
 import android.Manifest
-import android.app.AlertDialog
 import android.app.RecoverableSecurityException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -685,7 +684,7 @@ class MainActivity : AppCompatActivity() {
     private fun toast(res: Int) = Toast.makeText(this, getString(res), Toast.LENGTH_SHORT).show()
 
     private fun confirmDelete(song: Song) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.menu_delete)
             .setMessage(gs(R.string.delete_confirm, song.title))
             .setNegativeButton(R.string.cancel, null)
@@ -791,7 +790,7 @@ class MainActivity : AppCompatActivity() {
         sb.append(kv(R.string.detail_format, File(song.path).extension.uppercase().ifBlank { "?" })).append('\n')
         sb.append(kv(R.string.detail_size, human(song.sizeBytes))).append('\n')
         sb.append(kv(R.string.detail_path, song.path))
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.menu_detail)
             .setMessage(sb.toString())
             .setPositiveButton(R.string.close, null)
@@ -859,7 +858,7 @@ class MainActivity : AppCompatActivity() {
     private fun confirmDeleteMany() {
         val list = adapter.selectedSongs()
         if (list.isEmpty()) return
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.sel_delete)
             .setMessage(gs(R.string.sel_delete_confirm, list.size))
             .setNegativeButton(R.string.cancel, null)
@@ -945,7 +944,7 @@ class MainActivity : AppCompatActivity() {
         sb.append(if (info.lyrics.isEmpty()) gs(R.string.fetch_lyrics_none)
                   else gs(R.string.fetch_lyrics_ok, info.lyrics.size))
 
-        val b = AlertDialog.Builder(this)
+        val b = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.menu_fetch_info)
             .setMessage(sb.toString())
             .setNegativeButton(R.string.close, null)

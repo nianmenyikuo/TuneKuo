@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.TuneKuo" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.TuneKuo" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/tk_primary</item>
         <item name="colorOnPrimary">@color/tk_on_primary</item>
         <item name="colorPrimaryContainer">@color/tk_primary_container</item>
@@ -45,6 +45,16 @@
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:enforceStatusBarContrast">false</item>
         <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.TuneKuo.Dialog</item>
+    </style>
+
+    <style name="ThemeOverlay.TuneKuo.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/tk_surface_high</item>
+        <item name="colorSurfaceContainerHigh">@color/tk_surface_high</item>
+        <item name="colorSurfaceContainerHighest">@color/tk_surface_high</item>
+        <item name="colorPrimary">@color/tk_primary</item>
+        <item name="android:textColorPrimary">@color/tk_on_surface</item>
+        <item name="android:textColorSecondary">@color/tk_on_surface_variant</item>
     </style>
 
     <style name="ShapeAppearance.TuneKuo.Cover" parent="">
