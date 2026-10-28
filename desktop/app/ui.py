@@ -17,7 +17,7 @@ from typing import List, Optional
 import assoc
 import online
 import paths
-from i18n import CAT as I18N_CAT, LANGS, TEXT as I18N_TEXT, cat_mode, current_language, set_language, t as tr, toggle_cat
+from i18n import CAT as I18N_CAT, LANGS, TEXT as I18N_TEXT, auto_fetch, cat_mode, current_language, set_auto_fetch, set_language, t as tr, toggle_cat
 from library import MetaLoader, default_roots, scan_paths
 from metadata import parse_lrc
 from player import PlayMode, Player, Track, fmt_time
@@ -320,7 +320,7 @@ class TuneKuoUI:
         cols = ("title", "artist", "album", "time")
         self._tree_cols = (("title", "col.title", 300, "w"), ("artist", "col.artist", 170, "w"),
                            ("album", "col.album", 170, "w"), ("time", "col.time", 70, "e"))
-        self.tree = ttk.Treeview(left, columns=cols, show="headings", selectmode="browse")
+        self.tree = ttk.Treeview(left, columns=cols, show="headings", selectmode="extended")
         for c, key, w, anchor in self._tree_cols:
             self.tree.heading(c, text=tr(key))
             self.tree.column(c, width=w, anchor=anchor, stretch=(c == "title"))
@@ -492,6 +492,18 @@ class TuneKuoUI:
             lb.bind("<Button-1>", lambda e, c=code: self.set_lang(c), add="+")
             self.lang_labels[code] = lb
 
+        self.var_auto_fetch = tk.BooleanVar(value=auto_fetch())
+        self.chk_auto_fetch = tk.Checkbutton(
+            box, text=tr("settings.auto_fetch"), variable=self.var_auto_fetch,
+            command=self._toggle_auto_fetch, bg=PANEL, fg=FG, selectcolor=CARD,
+            activebackground=PANEL, activeforeground=FG, font=(UI_FONT, 11),
+            anchor="w", cursor="hand2", bd=0, highlightthickness=0)
+        self.chk_auto_fetch.pack(fill="x", padx=14, pady=(10, 2))
+        self.lb_auto_hint = tk.Label(box, text=tr("settings.auto_fetch_hint"), bg=PANEL,
+                                     fg=FG_DIM, font=(UI_FONT, 9), anchor="w", justify="left",
+                                     wraplength=460)
+        self.lb_auto_hint.pack(fill="x", padx=16, pady=(0, 10))
+
         self.lb_feedback = tk.Label(box, text=tr("settings.feedback"), bg=PANEL, fg=ACCENT,
                                     font=(UI_FONT, 10, "underline"), anchor="w", cursor="hand2")
         self.lb_feedback.pack(fill="x", padx=16, pady=(18, 6))
@@ -517,6 +529,9 @@ class TuneKuoUI:
                           font=(UI_FONT, 12, "bold"))
             else:
                 lb.config(text=names[code], bg=PANEL, fg=FG, font=(UI_FONT, 12))
+
+    def _toggle_auto_fetch(self) -> None:
+        set_auto_fetch(self.var_auto_fetch.get())
 
     def set_lang(self, code: str) -> None:
         set_language(code)
@@ -550,6 +565,8 @@ class TuneKuoUI:
         self.lb_lang_group.config(text=tr("settings.language"))
         self.lb_feedback.config(text=tr("settings.feedback"))
         self.lb_log.config(text=tr("settings.log"))
+        self.chk_auto_fetch.config(text=tr("settings.auto_fetch"))
+        self.lb_auto_hint.config(text=tr("settings.auto_fetch_hint"))
         self.btn_now_back.config(text=tr("settings.back"))
         self.lb_now_title.config(text=tr("now.title"))
         self.btn_wave.config(text=GLYPH_MUSIC)
@@ -902,7 +919,8 @@ class TuneKuoUI:
         row = self.tree.identify_row(event.y)
         if not row:
             return
-        self.tree.selection_set(row)
+        if row not in self.tree.selection():
+            self.tree.selection_set(row)
         m = self._row_menu(int(row))
         try:
             m.tk_popup(event.x_root, event.y_root)
@@ -912,6 +930,14 @@ class TuneKuoUI:
     def _row_menu(self, idx: int) -> tk.Menu:
         m = tk.Menu(self.root, tearoff=0, bg=CARD, fg=FG, activebackground=ACCENT_D,
                     activeforeground="#FFFFFF", bd=0)
+        sel = self._selected_indices()
+        if len(sel) > 1:
+            n = len(sel)
+            m.add_command(label=tr("menu.fetch_selected", n=n),
+                          command=lambda: self.fetch_selected(sel))
+            m.add_command(label=tr("menu.delete_selected", n=n),
+                          command=lambda: self.delete_selected(sel))
+            return m
         m.add_command(label=tr("menu.play"), command=lambda: self.player.play_index(idx))
         m.add_separator()
         m.add_command(label=tr("menu.fetch_info"), command=lambda: self.fetch_online(idx))
@@ -925,6 +951,94 @@ class TuneKuoUI:
         m.add_command(label=tr("menu.remove"), command=lambda: self.remove_track(idx))
         m.add_command(label=tr("menu.delete_file"), command=lambda: self.delete_track(idx))
         return m
+
+    def _selected_indices(self) -> List[int]:
+        out = []
+        for iid in self.tree.selection():
+            try:
+                i = int(iid)
+            except ValueError:
+                continue
+            if 0 <= i < len(self.player.tracks):
+                out.append(i)
+        return out
+
+    def fetch_selected(self, indices: List[int]) -> None:
+        items = [(i, self._track_at(i)) for i in indices]
+        items = [(i, t) for i, t in items if t is not None]
+        if not items:
+            return
+        self._fetch_total = len(items)
+        self._fetch_found = 0
+        self.set_status(key="fetching_progress", done=0, total=self._fetch_total)
+        threading.Thread(target=self._fetch_worker, args=(items,), daemon=True).start()
+
+    def _fetch_worker(self, items) -> None:
+        total = len(items)
+        done = 0
+        for i, t in items:
+            try:
+                info = online.fetch(t)
+            except Exception:
+                swallow("ui.TuneKuoUI.fetch_selected.work")
+                info = None
+            done += 1
+            self.evq.put(("online_batch", (i, info, done, total), None))
+
+    def _apply_online_batch(self, idx: int, info, done: int, total: int) -> None:
+        if info is not None:
+            self._merge_online(idx, info)
+            self._fetch_found = getattr(self, "_fetch_found", 0) + 1
+        self.set_status(key="fetching_progress", done=done, total=total)
+        if done >= total:
+            self.refresh_list()
+            self.set_status(key="fetch_batch_done",
+                            found=getattr(self, "_fetch_found", 0), total=total)
+
+    def _merge_online(self, idx: int, info) -> None:
+        t = self._track_at(idx)
+        if not t:
+            return
+        t.title = info.title or t.title
+        t.artist = info.artist or t.artist
+        t.album = info.album or t.album
+        if info.lyrics:
+            t.lyrics = info.lyrics
+        if info.cover:
+            t.cover = info.cover
+        if self.tree.exists(str(idx)):
+            self.tree.item(str(idx), values=(t.display_title, self._artist(t), t.album,
+                                             fmt_time(t.duration)))
+        if idx == self.player.index:
+            self._show_track(t)
+
+    def delete_selected(self, indices: List[int]) -> None:
+        tracks = [self._track_at(i) for i in indices]
+        tracks = [t for t in tracks if t is not None]
+        if not tracks:
+            return
+        if not messagebox.askyesno(tr("menu.delete_selected", n=len(tracks)),
+                                   tr("sel_delete_confirm", n=len(tracks))):
+            return
+        paths = set()
+        for t in tracks:
+            try:
+                os.remove(t.path)
+                paths.add(t.path)
+            except OSError:
+                swallow("ui.TuneKuoUI.delete_selected")
+        if not paths:
+            return
+        cur = self.player.current()
+        was_current = bool(cur and cur.path in paths)
+        self.player.tracks[:] = [x for x in self.player.tracks if x.path not in paths]
+        self._reindex()
+        if was_current:
+            self.player.stop()
+            self.player.index = -1
+        self.refresh_list()
+        self.save_state()
+        self.set_status(tr("deleted", name=str(len(paths))))
 
     def _track_at(self, idx: int) -> Optional[Track]:
         return self.player.tracks[idx] if 0 <= idx < len(self.player.tracks) else None
@@ -996,18 +1110,7 @@ class TuneKuoUI:
             self.set_status(key="fetch_failed")
             messagebox.showwarning(tr("menu.fetch_info"), tr("fetch_failed"))
             return
-        t.title = info.title or t.title
-        t.artist = info.artist or t.artist
-        t.album = info.album or t.album
-        if info.lyrics:
-            t.lyrics = info.lyrics
-        if info.cover:
-            t.cover = info.cover
-        if self.tree.exists(str(idx)):
-            self.tree.item(str(idx), values=(t.display_title, self._artist(t), t.album,
-                                             fmt_time(t.duration)))
-        if idx == self.player.index:
-            self._show_track(t)
+        self._merge_online(idx, info)
         n = len(parse_lrc(info.lyrics)) or len([l for l in info.lyrics.splitlines() if l.strip()])
         src = " · ".join(x for x in (info.meta_source, info.lyric_source) if x)
         self.set_status(key="fetch_ok", src=src, n=n)
@@ -1186,6 +1289,22 @@ class TuneKuoUI:
             return
         self.add_paths(roots, files=found)
         self.set_status(key="status.scanned", n=len(self.player.tracks))
+        self._auto_fetch_after_scan()
+
+    def _auto_fetch_after_scan(self) -> None:
+        if not auto_fetch():
+            return
+        todo = []
+        for i, t in enumerate(self.player.tracks):
+            try:
+                cached = bool(online.cached_meta(t.path)) or bool(online.cached_lyrics(t.path))
+            except Exception:
+                swallow("ui.TuneKuoUI.auto_fetch_after_scan")
+                cached = False
+            if not cached:
+                todo.append(i)
+        if todo:
+            self.fetch_selected(todo)
 
     def register_default(self) -> None:
         try:
@@ -1332,6 +1451,8 @@ class TuneKuoUI:
                 self._show_track(track)
         elif kind == "online":
             self._apply_online(a, b)
+        elif kind == "online_batch":
+            self._apply_online_batch(a[0], a[1], a[2], a[3])
         elif kind == "peaks":
             self._peaks_pending.discard(a)
             cur = self.player.current()

@@ -150,4 +150,26 @@
     <string name="cat_scan_tip_8">このフォルダ、毛糸みたいに絡まってるにゃ…少しずつほどくね</string>
     <string name="cat_scan_tip_9">自分のしっぽに夢中になっちゃった…にゃ、続けるよ！</string>
     <string name="cat_scan_tip_10">ぜんぶ運んだよ！ご主人様、なでなでしていいにゃ〜</string>
+    <string name="sel_count">%1$d 曲を選択中</string>
+    <string name="sel_all">すべて選択</string>
+    <string name="sel_cancel">キャンセル</string>
+    <string name="sel_fetch">オンライン検索</string>
+    <string name="sel_delete">削除</string>
+    <string name="sel_delete_confirm">%1$d 曲のファイルを削除する？元に戻せないよ</string>
+    <string name="fetching_progress">オンライン検索中 %1$d / %2$d…</string>
+    <string name="fetch_batch_done">検索完了：%1$d / %2$d 曲見つかった</string>
+    <string name="settings_auto_fetch">自動オンライン検索</string>
+    <string name="settings_auto_fetch_hint">オンにするとスキャン後に歌詞と情報を自動で取ってくるよ</string>
+    <string name="cat_sel_count">%1$d 曲選んだにゃ</string>
+    <string name="cat_sel_all">全部にゃ</string>
+    <string name="cat_sel_cancel">やめるにゃ</string>
+    <string name="cat_sel_fetch">ネットで取ってくるにゃ</string>
+    <string name="cat_sel_delete">捨てるにゃ</string>
+    <string name="cat_sel_delete_confirm">この %1$d 曲、本当に捨てるにゃ？戻せないよ</string>
+    <string name="cat_fetching_progress">ねこがネットを漁ってるにゃ %1$d / %2$d…</string>
+    <string name="cat_fetch_batch_done">取ってきたにゃ：%1$d / %2$d 曲</string>
+    <string name="cat_settings_auto_fetch">自動でネットから取るにゃ</string>
+    <string name="cat_settings_auto_fetch_hint">オンにするとスキャンの後、ねこが自分で歌詞と情報を取ってくるにゃ</string>
+    <string name="menu_select">選択</string>
+    <string name="cat_menu_select">選ぶにゃ</string>
 </resources>

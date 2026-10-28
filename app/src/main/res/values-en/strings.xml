@@ -150,4 +150,26 @@
     <string name="cat_scan_tip_8">This folder is tangled like a yarn ball… kitty will sort it, meow</string>
     <string name="cat_scan_tip_9">Got distracted by my own tail… nya, continuing!</string>
     <string name="cat_scan_tip_10">All fetched home! You may pet the kitty now, meow~</string>
+    <string name="sel_count">%1$d selected</string>
+    <string name="sel_all">Select all</string>
+    <string name="sel_cancel">Cancel</string>
+    <string name="sel_fetch">Search online</string>
+    <string name="sel_delete">Delete</string>
+    <string name="sel_delete_confirm">Delete the %1$d selected files? This cannot be undone.</string>
+    <string name="fetching_progress">Searching online %1$d / %2$d...</string>
+    <string name="fetch_batch_done">Search finished: %1$d / %2$d tracks found</string>
+    <string name="settings_auto_fetch">Auto search online</string>
+    <string name="settings_auto_fetch_hint">When on, lyrics and info are fetched after every scan</string>
+    <string name="cat_sel_count">%1$d chosen, nya</string>
+    <string name="cat_sel_all">All of them, nya</string>
+    <string name="cat_sel_cancel">Never mind, nya</string>
+    <string name="cat_sel_fetch">Fetch info, nya</string>
+    <string name="cat_sel_delete">Toss them, nya</string>
+    <string name="cat_sel_delete_confirm">Toss the %1$d files for real, nya? They are gone for good.</string>
+    <string name="cat_fetching_progress">Kitty is digging online %1$d / %2$d... nya</string>
+    <string name="cat_fetch_batch_done">Fetched, nya: %1$d / %2$d tracks</string>
+    <string name="cat_settings_auto_fetch">Auto fetch online, nya</string>
+    <string name="cat_settings_auto_fetch_hint">When on, kitty fetches lyrics and info after every scan, nya</string>
+    <string name="menu_select">Select</string>
+    <string name="cat_menu_select">Pick some, nya</string>
 </resources>

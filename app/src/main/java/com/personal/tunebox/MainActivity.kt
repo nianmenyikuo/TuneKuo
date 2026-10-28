@@ -38,6 +38,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -53,14 +54,17 @@ class MainActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private val ui = CoroutineScope(Dispatchers.Main)
 
-    private var pendingDelete: Song? = null
+    private var pendingDeletes: List<Song> = emptyList()
 
     private val deleteLauncher =
         registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { res ->
-            val s = pendingDelete
-            pendingDelete = null
+            val list = pendingDeletes
+            pendingDeletes = emptyList()
             when {
-                s != null && res.resultCode == RESULT_OK -> finishDelete(s)
+                list.isNotEmpty() && res.resultCode == RESULT_OK -> {
+                    list.forEach { finishDelete(it, false) }
+                    toast(R.string.deleted)
+                }
                 res.resultCode == RESULT_CANCELED -> toast(R.string.delete_canceled)
                 else -> toast(R.string.delete_failed)
             }
@@ -76,6 +80,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnMode: TextView
     private lateinit var ivNowCover: ImageView
     private var loadedFor: String? = null
+
+    private lateinit var selBar: View
+    private lateinit var tvSelCount: TextView
+    private lateinit var swAutoFetch: MaterialSwitch
+    private val KEY_AUTO_FETCH = "auto_fetch"
 
     private lateinit var pageNow: View
     private lateinit var waveform: WaveformView
@@ -204,6 +213,26 @@ class MainActivity : AppCompatActivity() {
         btnMode = findViewById(R.id.btnMode)
         ivNowCover = findViewById(R.id.ivNowCover)
 
+        selBar = findViewById(R.id.selBar)
+        tvSelCount = findViewById(R.id.tvSelCount)
+        findViewById<View>(R.id.btnSelClose).setOnClickListener {
+            adapter.clearSelection()
+            syncSelection()
+        }
+        findViewById<View>(R.id.btnSelAll).setOnClickListener {
+            adapter.selectAll(display.map { it.path })
+            syncSelection()
+        }
+        findViewById<View>(R.id.btnSelFetch).setOnClickListener { batchFetch() }
+        findViewById<View>(R.id.btnSelDelete).setOnClickListener { confirmDeleteMany() }
+
+        swAutoFetch = findViewById(R.id.swAutoFetch)
+        swAutoFetch.isSaveEnabled = false
+        swAutoFetch.isChecked = LocaleHelper.pref(this).getBoolean(KEY_AUTO_FETCH, false)
+        swAutoFetch.setOnCheckedChangeListener { _, v ->
+            LocaleHelper.pref(this).edit().putBoolean(KEY_AUTO_FETCH, v).apply()
+        }
+
         pageNow = findViewById(R.id.pageNow)
         waveform = findViewById(R.id.waveform)
         tvBigTitle = findViewById(R.id.tvBigTitle)
@@ -234,9 +263,21 @@ class MainActivity : AppCompatActivity() {
         val rv = findViewById<RecyclerView>(R.id.rvSongs)
         rv.layoutManager = LinearLayoutManager(this)
         adapter = SongAdapter(display, { song ->
-            val pos = songs.indexOfFirst { it.path == song.path }
-            if (pos >= 0) playAt(pos)
-        }, { song, anchor -> showSongMenu(song, anchor) })
+            if (adapter.selecting) {
+                adapter.toggle(song.path)
+                syncSelection()
+            } else {
+                val pos = songs.indexOfFirst { it.path == song.path }
+                if (pos >= 0) playAt(pos)
+            }
+        }, { song, anchor ->
+            if (adapter.selecting) {
+                adapter.toggle(song.path)
+                syncSelection()
+            } else {
+                showSongMenu(song, anchor)
+            }
+        })
         rv.adapter = adapter
 
         val etSearch = findViewById<EditText>(R.id.etSearch)
@@ -473,6 +514,12 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnNowPlay).contentDescription = Cat.s(this, R.string.notif_play_pause)
         findViewById<View>(R.id.btnNowNext).contentDescription = Cat.s(this, R.string.notif_next)
         findViewById<TextView>(R.id.btnNowMode).text = Cat.s(this, R.string.mode_repeat_list)
+        findViewById<TextView>(R.id.btnSelClose).text = Cat.s(this, R.string.sel_cancel)
+        findViewById<TextView>(R.id.btnSelAll).text = Cat.s(this, R.string.sel_all)
+        findViewById<TextView>(R.id.btnSelFetch).text = Cat.s(this, R.string.sel_fetch)
+        findViewById<TextView>(R.id.btnSelDelete).text = Cat.s(this, R.string.sel_delete)
+        findViewById<TextView>(R.id.tvAutoFetch).text = Cat.s(this, R.string.settings_auto_fetch)
+        findViewById<TextView>(R.id.tvAutoFetchHint).text = Cat.s(this, R.string.settings_auto_fetch_hint)
     }
 
     private fun rescan() {
@@ -497,6 +544,7 @@ class MainActivity : AppCompatActivity() {
                 if (wait > 0) delay(wait)
                 scanning = false
                 hideScanUi()
+                autoFetchAfterScan()
             }
         }
     }
@@ -590,6 +638,7 @@ class MainActivity : AppCompatActivity() {
                 if (wait > 0) delay(wait)
                 scanning = false
                 hideScanUi()
+                autoFetchAfterScan()
             }
         }
     }
@@ -615,12 +664,17 @@ class MainActivity : AppCompatActivity() {
         pop.menu.add(0, 3, 2, gs(R.string.menu_copy_title))
         pop.menu.add(0, 4, 3, gs(R.string.menu_copy_path))
         pop.menu.add(0, 5, 4, gs(R.string.menu_delete))
+        pop.menu.add(0, 6, 5, gs(R.string.menu_select))
         pop.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 1 -> fetchOnline(song)
                 2 -> showDetail(song)
                 3 -> copyText(song.title)
                 4 -> copyText(song.path)
+                6 -> {
+                    adapter.startSelection(song.path)
+                    syncSelection()
+                }
                 else -> confirmDelete(song)
             }
             true
@@ -647,7 +701,7 @@ class MainActivity : AppCompatActivity() {
         }
         if (Build.VERSION.SDK_INT >= 30) {
             val uri = mediaUri(f)
-            if (uri != null) askSystemToDelete(song, uri) else scanThenDelete(song, f)
+            if (uri != null) askSystemToDelete(listOf(song), listOf(uri)) else scanThenDelete(song, f)
             return
         }
         if (hasWrite() && runCatching { f.delete() }.getOrDefault(false)) {
@@ -665,9 +719,9 @@ class MainActivity : AppCompatActivity() {
         MediaStore.getDocumentUri(this, Uri.fromFile(f))?.let { MediaStore.getMediaUri(this, it) }
     }.getOrNull()
 
-    private fun askSystemToDelete(song: Song, uri: Uri) {
-        pendingDelete = song
-        val req = MediaStore.createDeleteRequest(contentResolver, listOf(uri))
+    private fun askSystemToDelete(list: List<Song>, uris: List<Uri>) {
+        pendingDeletes = list
+        val req = MediaStore.createDeleteRequest(contentResolver, uris)
         deleteLauncher.launch(IntentSenderRequest.Builder(req.intentSender).build())
     }
 
@@ -675,7 +729,7 @@ class MainActivity : AppCompatActivity() {
         MediaScannerConnection.scanFile(this, arrayOf(f.absolutePath), null) { _, _ ->
             val uri = queryMediaUri(f) ?: mediaUri(f)
             runOnUiThread {
-                if (uri == null) toast(R.string.delete_not_in_library) else askSystemToDelete(song, uri)
+                if (uri == null) toast(R.string.delete_not_in_library) else askSystemToDelete(listOf(song), listOf(uri))
             }
         }
     }
@@ -697,14 +751,14 @@ class MainActivity : AppCompatActivity() {
         finishDelete(song)
         true
     } catch (e: RecoverableSecurityException) {
-        pendingDelete = song
+        pendingDeletes = listOf(song)
         deleteLauncher.launch(IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build())
         true
     } catch (_: Throwable) {
         false
     }
 
-    private fun finishDelete(song: Song) {
+    private fun finishDelete(song: Song, announce: Boolean = true) {
         val wasCurrent = PlaybackService.engine?.current?.path == song.path
         if (wasCurrent) PlaybackService.engine?.forget(song.path)
         songs.removeAll { it.path == song.path }
@@ -719,7 +773,7 @@ class MainActivity : AppCompatActivity() {
             MediaArtHolder.cover = null
             MediaArtHolder.lyrics = emptyList()
         }
-        toast(R.string.deleted)
+        if (announce) toast(R.string.deleted)
     }
 
     private fun copyText(text: String) {
@@ -744,6 +798,126 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun applyInfo(song: Song, info: OnlineMeta.Info) {
+        val i = songs.indexOfFirst { it.path == song.path }
+        if (i >= 0) {
+            val old = songs[i]
+            val updated = old.copy(
+                title = info.title.ifBlank { old.title },
+                artist = info.artist.ifBlank { old.artist },
+                album = info.album.ifBlank { old.album }
+            )
+            songs[i] = updated
+            val d = display.indexOfFirst { it.path == song.path }
+            if (d >= 0) display[d] = updated
+            adapter.notifyDataSetChanged()
+            PlaybackService.engine?.retitle(updated)
+        }
+        if (PlaybackService.engine?.current?.path == song.path) {
+            info.cover?.let { f ->
+                BitmapFactory.decodeFile(f.absolutePath)?.let {
+                    MediaArtHolder.cover = it
+                    ivNowCover.setImageBitmap(it)
+                }
+            }
+            if (info.lyrics.isNotEmpty()) MediaArtHolder.lyrics = info.lyrics
+        }
+    }
+
+    private fun fetchMany(list: List<Song>, silent: Boolean) {
+        if (list.isEmpty()) return
+        ui.launch {
+            var done = 0
+            var found = 0
+            for (s in list) {
+                done++
+                if (!silent) Toast.makeText(
+                    this@MainActivity,
+                    gs(R.string.fetching_progress, done, list.size),
+                    Toast.LENGTH_SHORT
+                ).show()
+                val info = OnlineMeta.fetch(this@MainActivity, s) ?: continue
+                found++
+                applyInfo(s, info)
+            }
+            if (!silent) Toast.makeText(
+                this@MainActivity,
+                gs(R.string.fetch_batch_done, found, list.size),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun batchFetch() {
+        val list = adapter.selectedSongs()
+        if (list.isEmpty()) return
+        adapter.clearSelection()
+        syncSelection()
+        fetchMany(list, false)
+    }
+
+    private fun confirmDeleteMany() {
+        val list = adapter.selectedSongs()
+        if (list.isEmpty()) return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sel_delete)
+            .setMessage(gs(R.string.sel_delete_confirm, list.size))
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.delete_ok) { _, _ ->
+                adapter.clearSelection()
+                syncSelection()
+                deleteMany(list)
+            }
+            .show()
+    }
+
+    private fun deleteMany(list: List<Song>) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val uris = list.mapNotNull { mediaUri(File(it.path)) }
+            if (uris.isEmpty()) {
+                toast(R.string.delete_not_in_library)
+                return
+            }
+            askSystemToDelete(list, uris)
+            return
+        }
+        val gone = ArrayList<Song>()
+        for (s in list) {
+            val f = File(s.path)
+            if (runCatching { f.delete() }.getOrDefault(false)) {
+                gone.add(s)
+                continue
+            }
+            if (Build.VERSION.SDK_INT == 29) {
+                val uri = mediaUri(f)
+                if (uri != null && deleteViaResolver(s, uri)) gone.add(s)
+            }
+        }
+        if (gone.isNotEmpty()) {
+            gone.forEach { finishDelete(it, false) }
+            toast(R.string.deleted)
+        } else {
+            toast(if (hasWrite()) R.string.delete_not_in_library else R.string.delete_no_perm)
+        }
+    }
+
+    private fun syncSelection() {
+        if (adapter.selecting) {
+            selBar.visibility = View.VISIBLE
+            tvSelCount.text = gs(R.string.sel_count, adapter.selected.size)
+        } else {
+            selBar.visibility = View.GONE
+        }
+    }
+
+    private fun autoFetchAfterScan() {
+        if (!LocaleHelper.pref(this).getBoolean(KEY_AUTO_FETCH, false)) return
+        if (songs.isEmpty()) return
+        val todo = songs.filter { !OnlineMeta.hasCache(this, it) }
+        if (todo.isEmpty()) return
+        fetchMany(todo, true)
+    }
+
     private fun fetchOnline(song: Song) {
         Toast.makeText(this, gs(R.string.fetching_online), Toast.LENGTH_SHORT).show()
         ui.launch {
@@ -752,29 +926,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, gs(R.string.fetch_failed), Toast.LENGTH_LONG).show()
                 return@launch
             }
-            val i = songs.indexOfFirst { it.path == song.path }
-            if (i >= 0) {
-                val old = songs[i]
-                val updated = old.copy(
-                    title = info.title.ifBlank { old.title },
-                    artist = info.artist.ifBlank { old.artist },
-                    album = info.album.ifBlank { old.album }
-                )
-                songs[i] = updated
-                val d = display.indexOfFirst { it.path == song.path }
-                if (d >= 0) display[d] = updated
-                adapter.notifyDataSetChanged()
-                PlaybackService.engine?.retitle(updated)
-            }
-            if (PlaybackService.engine?.current?.path == song.path) {
-                info.cover?.let { f ->
-                    BitmapFactory.decodeFile(f.absolutePath)?.let {
-                        MediaArtHolder.cover = it
-                        ivNowCover.setImageBitmap(it)
-                    }
-                }
-                if (info.lyrics.isNotEmpty()) MediaArtHolder.lyrics = info.lyrics
-            }
+            applyInfo(song, info)
             showInfoDialog(song, info)
         }
     }

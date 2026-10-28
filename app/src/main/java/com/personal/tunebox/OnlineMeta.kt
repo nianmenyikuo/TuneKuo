@@ -47,6 +47,9 @@ object OnlineMeta {
         null
     }
 
+    fun hasCache(context: Context, song: Song): Boolean =
+        cachedMeta(context, song) != null || cachedLyrics(context, song).isFile
+
     private fun saveMeta(context: Context, song: Song, title: String, artist: String, album: String) = try {
         metaFile(context, song).writeText(
             JSONObject().put("title", title).put("artist", artist).put("album", album).toString()

@@ -26,6 +26,15 @@
         android:paddingTop="12dp"
         android:paddingBottom="12dp">
 
+        <ImageView
+            android:id="@+id/ivCheck"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginEnd="10dp"
+            android:contentDescription="@string/sel_count"
+            android:src="@drawable/ic_check"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/tvIndex"
             android:layout_width="30dp"

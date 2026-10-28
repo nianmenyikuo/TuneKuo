@@ -315,6 +315,47 @@ CAT = {
     "tip.wave": ("正在播放页喵", "Now playing page, nya", "再生中ページにゃ"),
 }
 
+TEXT.update({
+    "menu.fetch_selected": ("联网搜索所选 {n} 首", "Search {n} tracks online", "選択した {n} 曲を検索"),
+    "menu.delete_selected": ("删除所选 {n} 个文件", "Delete {n} files", "選択した {n} 曲を削除"),
+    "sel_delete_confirm": ("要删掉选中的 {n} 个文件吗？删了就找不回来了",
+                           "Delete the {n} selected files? This cannot be undone.",
+                           "選択した {n} 曲を削除する？元に戻せないよ"),
+    "fetching_progress": ("正在联网搜索 {done} / {total}…", "Searching online {done} / {total}...",
+                          "オンライン検索中 {done} / {total}…"),
+    "fetch_batch_done": ("联网搜索完成：{found} / {total} 首找到信息",
+                         "Search finished: {found} / {total} tracks found",
+                         "検索完了：{found} / {total} 曲見つかった"),
+    "settings.auto_fetch": ("自动联网搜索", "Search online automatically", "自動オンライン検索"),
+    "settings.auto_fetch_hint": ("打开后每次扫描完会自动补全歌词与信息",
+                                 "When on, lyrics and info are filled in after every scan",
+                                 "オンにするとスキャンの後で歌詞と情報を自動で取ってくるよ"),
+})
+
+CAT.update({
+    "menu.fetch_selected": ("去网上叼这 {n} 首的资料喵", "Fetch {n} tracks, nya", "この {n} 曲を取ってくるにゃ"),
+    "menu.delete_selected": ("丢掉这 {n} 个文件喵", "Toss {n} files, nya", "この {n} 曲を捨てるにゃ"),
+    "sel_delete_confirm": ("真的要把这 {n} 个文件丢掉吗喵？丢了就找不回来了",
+                           "Toss the {n} files for real, nya? They are gone for good.",
+                           "この {n} 曲、本当に捨てるにゃ？戻せないよ"),
+    "fetching_progress": ("猫猫在网上翻资料 {done} / {total}…喵", "Kitty is digging online {done} / {total}... nya",
+                          "ねこがネットを漁ってるにゃ {done} / {total}…"),
+    "fetch_batch_done": ("叼回来啦喵：{found} / {total} 首有资料", "Fetched, nya: {found} / {total} tracks",
+                         "取ってきたにゃ：{found} / {total} 曲"),
+    "settings.auto_fetch": ("自动去网上叼资料喵", "Auto fetch online, nya", "自動でネットから取るにゃ"),
+    "settings.auto_fetch_hint": ("打开以后每次扒拉完，猫猫自己上网补歌词和资料喵",
+                                 "When on, kitty fetches lyrics and info after every scan, nya",
+                                 "オンにするとスキャンの後、ねこが自分で歌詞と情報を取ってくるにゃ"),
+})
+
+def auto_fetch() -> bool:
+    return bool(_read_state().get("auto_fetch"))
+
+def set_auto_fetch(value: bool) -> None:
+    data = _read_state()
+    data["auto_fetch"] = bool(value)
+    _write_state(data)
+
 _cat = None
 
 def _load_cat() -> bool:

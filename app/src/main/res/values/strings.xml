@@ -154,4 +154,26 @@
     <string name="cat_scan_tip_8">这个文件夹乱得像毛线球喵…猫猫慢慢理</string>
     <string name="cat_scan_tip_9">数到一半被自己尾巴吸引走了…喵，继续！</string>
     <string name="cat_scan_tip_10">全部叼回来啦喵！可以摸摸猫猫了</string>
+    <string name="sel_count">已选 %1$d 首</string>
+    <string name="sel_all">全选</string>
+    <string name="sel_cancel">取消</string>
+    <string name="sel_fetch">联网搜索</string>
+    <string name="sel_delete">删除</string>
+    <string name="sel_delete_confirm">要删掉选中的 %1$d 个文件吗？删了就找不回来了</string>
+    <string name="fetching_progress">正在联网搜索 %1$d / %2$d…</string>
+    <string name="fetch_batch_done">联网搜索完成：%1$d / %2$d 首找到信息</string>
+    <string name="settings_auto_fetch">自动联网搜索</string>
+    <string name="settings_auto_fetch_hint">打开后每次扫描完会自动补全歌词与信息</string>
+    <string name="cat_sel_count">喵～选好 %1$d 首啦</string>
+    <string name="cat_sel_all">全都要喵</string>
+    <string name="cat_sel_cancel">算了喵</string>
+    <string name="cat_sel_fetch">去网上叼资料喵</string>
+    <string name="cat_sel_delete">丢掉喵</string>
+    <string name="cat_sel_delete_confirm">真的要把这 %1$d 个文件丢掉吗喵？丢了就找不回来了</string>
+    <string name="cat_fetching_progress">猫猫在网上翻资料 %1$d / %2$d…喵</string>
+    <string name="cat_fetch_batch_done">叼回来啦喵：%1$d / %2$d 首有资料</string>
+    <string name="cat_settings_auto_fetch">自动去网上叼资料喵</string>
+    <string name="cat_settings_auto_fetch_hint">打开以后每次扒拉完，猫猫自己上网补歌词和资料喵</string>
+    <string name="menu_select">多选</string>
+    <string name="cat_menu_select">挑着选喵</string>
 </resources>
